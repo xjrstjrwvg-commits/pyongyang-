@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no text-align: center">
     <title>極・しりとり v2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -17,7 +17,7 @@
         <div class="bg-white rounded-3xl shadow-xl p-6 space-y-4">
             <h1 class="font-black text-indigo-600 text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
             
-            <input id="sw" oninput="toK(this)" placeholder="開始単語 (例: アメリカ)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none">
+            <input id="sw" oninput="toK(this)" placeholder="開始単語" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none focus:ring-2 focus:ring-indigo-300">
             
             <div class="grid grid-cols-3 gap-2">
                 <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
@@ -49,12 +49,12 @@
                 <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">ずらし</span>
                     <div class="flex items-center gap-2"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600">+0</span><button onclick="adjS(1)">+</button></div>
                 </div>
-                <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic italic"><span>牛耕</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600"></label>
+                <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic"><span>牛耕</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600"></label>
             </div>
 
             <div class="flex gap-2">
-                <button onclick="runSearch()" id="runBtn" class="flex-1 bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">探索</button>
-                <button onclick="resetAll()" class="px-6 bg-slate-200 text-slate-600 font-bold rounded-2xl">全リセット</button>
+                <button onclick="runSearch()" id="runBtn" class="flex-[2] bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">探索</button>
+                <button onclick="resetAll()" class="flex-1 bg-slate-200 text-slate-600 font-bold rounded-2xl">リセット</button>
             </div>
         </div>
 
@@ -63,12 +63,15 @@
             <div id="wordBoard" class="hidden p-4 border-t"><input id="wordSearch" oninput="renderWordList()" placeholder="絞り込み..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none"><div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div></div>
         </div>
 
-        <div id="resCount" class="text-center text-[10px] font-bold text-slate-400"></div>
+        <div class="flex justify-between items-center px-2">
+            <div id="resCount" class="text-[10px] font-bold text-slate-400"></div>
+            <button id="allCopyBtn" onclick="copyAll()" class="hidden text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full">全結果コピー</button>
+        </div>
         <div id="results" class="space-y-3"></div>
     </div>
 
     <script>
-        let currentCat = 'both', shiftCount = 0, wordConfigs = {};
+        let currentCat = 'both', shiftCount = 0, wordConfigs = {}, lastResults = [];
         const allWords = Array.from(new Set([...{{ countries|tojson }}, ...{{ capitals|tojson }}])).sort();
 
         function toK(el) { el.value = el.value.replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 0x60)); }
@@ -78,13 +81,13 @@
         function toggleWords() { const b = document.getElementById('wordBoard'); b.classList.toggle('hidden'); document.getElementById('arrow').innerText = b.classList.contains('hidden') ? '▼' : '▲'; if(!b.classList.contains('hidden')) renderWordList(); }
 
         function resetAll() {
-            document.querySelectorAll('input[type="text"], input[placeholder]').forEach(i => i.value = "");
-            document.querySelectorAll('input[type="checkbox"]').forEach(i => i.checked = false);
+            document.querySelectorAll('input').forEach(i => { if(i.type==='text') i.value = ""; if(i.type==='checkbox') i.checked = false; });
             shiftCount = 0; document.getElementById('sDisp').innerText = "+0";
             document.getElementById('fixedLenVal').innerText = "3";
             wordConfigs = {}; renderWordList();
             document.getElementById('results').innerHTML = "";
             document.getElementById('resCount').innerText = "";
+            document.getElementById('allCopyBtn').classList.add('hidden');
         }
 
         function renderWordList() {
@@ -102,16 +105,20 @@
                 is_gyukou: document.getElementById('gk').checked, word_configs: wordConfigs
             };
             const res = await fetch('/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-            const data = await res.json(), container = document.getElementById('results'); container.innerHTML = '';
-            data.routes.forEach(route => {
+            const data = await res.json(); lastResults = data.routes;
+            const container = document.getElementById('results'); container.innerHTML = '';
+            data.routes.slice(0, 300).forEach(route => {
                 const text = route.join(" → "), div = document.createElement('div');
                 div.className = "bg-white p-4 rounded-2xl shadow-sm flex flex-col gap-2";
-                div.innerHTML = `<div class="text-sm font-bold text-slate-700">${text}</div><div class="flex justify-between items-center text-[9px] text-slate-400"><span>計 ${route.join("").length}字</span><button onclick="copy('${text}')" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold">コピー</button></div>`;
+                div.innerHTML = `<div class="text-sm font-bold text-slate-700 text-left">${text}</div><div class="flex justify-between items-center text-[9px] text-slate-400"><span>計 ${route.join("").length}字</span><button onclick="copyOne('${text}')" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold">コピー</button></div>`;
                 container.appendChild(div);
             });
-            document.getElementById('resCount').innerText = `${data.count} 件`; btn.disabled = false; btn.innerText = "探索";
+            document.getElementById('resCount').innerText = `${data.count} 件`;
+            if(data.count > 0) document.getElementById('allCopyBtn').classList.remove('hidden');
+            btn.disabled = false; btn.innerText = "探索";
         }
-        function copy(t) { navigator.clipboard.writeText(t); alert("コピー！"); }
+        function copyOne(t) { navigator.clipboard.writeText(t); alert("コピー完了！"); }
+        function copyAll() { const txt = lastResults.map(r => r.join(" → ")).join("\n"); navigator.clipboard.writeText(txt); alert(lastResults.length + "件すべての結果をコピーしました！"); }
     </script>
 </body>
 </html>
