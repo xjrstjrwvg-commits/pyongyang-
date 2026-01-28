@@ -17,7 +17,6 @@ DATA_STORE = {
 def get_clean_char(w, ignore_voiced, pos="head"):
     if not w: return ""
     w_clean = w.replace("ー", "")
-    if not w_clean: return ""
     char = w_clean if pos == "head" else w_clean[-1]
     res = SMALL_TO_LARGE.get(char, char)
     if ignore_voiced: res = res.translate(VOICE_MAP)
@@ -37,51 +36,35 @@ def search():
     shift = int(d.get('shift_count', 0))
     is_gyukou = d.get('is_gyukou', False)
     
-    # 複数必須文字
-    must_chars = [c.translate(VOICE_MAP) if ignore_voiced else c for c in d.get('must_char', "")]
-    start_char = d.get('start_char', "")
-    if start_char and ignore_voiced: start_char = start_char.translate(VOICE_MAP)
+    # 単語数指定は常に絶対
+    target_len = int(d.get('fixed_len_val', 3))
     
-    # 独立ルール取得
-    use_fixed_len = d.get('use_fixed_len', False)
-    fixed_len_val = int(d.get('fixed_len_val', 5))
+    must_chars = [c.translate(VOICE_MAP) if ignore_voiced else c for c in d.get('must_char', "")]
     use_increasing = d.get('use_increasing', False)
     use_total_chars = d.get('use_total_chars', False)
-    total_chars_val = int(d.get('total_chars_val', 20))
+    total_chars_val = int(d.get('total_chars_val', 15))
 
-    # 検索対象プール
     base_pool = DATA_STORE["countries"] if category == "countries" else DATA_STORE["capitals"] if category == "capitals" else list(set(DATA_STORE["countries"] + DATA_STORE["capitals"]))
     pool = [w for w in base_pool if word_configs.get(w) != 2]
     must_words = [w for w, v in word_configs.items() if v == 1]
-
-    if exclude_dup:
-        cnt = Counter((get_clean_char(w, ignore_voiced, "head"), get_clean_char(w, ignore_voiced, "tail")) for w in pool)
-        pool = [w for w in pool if cnt[(get_clean_char(w, ignore_voiced, "head"), get_clean_char(w, ignore_voiced, "tail"))] == 1]
 
     results = []
 
     def solve(path):
         if len(results) >= 500: return
-        
         current_len = len(path)
-        current_text = "".join(path)
-        current_total_chars = len(current_text)
+        current_total_chars = len("".join(path))
 
-        # 終了判定
-        is_ready = True
-        if use_fixed_len and current_len != fixed_len_val: is_ready = False
-        if use_total_chars and current_total_chars != total_chars_val: is_ready = False
-        
-        if is_ready and current_len >= 1:
-            check_text = current_text.translate(VOICE_MAP if ignore_voiced else {})
-            if all(mc in check_text for mc in must_chars) and all(m in path for m in must_words):
+        # 常に指定単語数に達した時のみ判定
+        if current_len == target_len:
+            if use_total_chars and current_total_chars != total_chars_val: return
+            check_text = "".join(path).translate(VOICE_MAP if ignore_voiced else {})
+            if all(mc in check_text for mc in must_chars) and all(mw in path for mw in must_words):
                 results.append(list(path))
-                if use_fixed_len or use_total_chars: return # 指定モード時はここで完結
+            return
 
-        # 枝切り
-        if use_fixed_len and current_len >= fixed_len_val: return
-        if use_total_chars and current_total_chars >= total_chars_val: return
-        if current_len >= 12: return
+        if current_len > target_len: return
+        if use_total_chars and current_total_chars > total_chars_val: return
 
         last_w = path[-1]
         use_head = is_gyukou and (current_len % 2 == 0)
@@ -105,7 +88,6 @@ def search():
     sw = d.get('start_word')
     starts = [sw] if (sw and sw in pool) else pool
     for w in starts:
-        if not sw and start_char and get_clean_char(w, ignore_voiced, "head") != start_char: continue
         solve([w])
 
     return jsonify({"routes": results, "count": len(results)})
