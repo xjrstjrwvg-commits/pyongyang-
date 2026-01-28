@@ -4,7 +4,7 @@ from collections import Counter
 
 app = Flask(__name__)
 
-# --- 2026 Edition: 順番表 (81文字環状構造) ---
+# 81文字環状構造
 CHARS_CIRCLE = ["ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "ガ", "ギ", "グ", "ゲ", "ゴ", "サ", "シ", "ス", "セ", "ソ", "ザ", "ジ", "ズ", "ゼ", "ゾ", "タ", "チ", "ツ", "テ", "ト", "ダ", "ヂ", "ヅ", "デ", "ド", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "バ", "ビ", "ブ", "ベ", "ボ", "パ", "ピ", "プ", "ペ", "ポ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ン"]
 SMALL_TO_LARGE = {"ァ": "ア", "ィ": "イ", "ゥ": "ウ", "ェ": "エ", "ォ": "オ", "ッ": "ツ", "ャ": "ヤ", "ュ": "ユ", "ョ": "ヨ", "ヮ": "ワ"}
 VOICE_MAP = str.maketrans("ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ", "カキクケコサシスセソタチツテトハヒフヘホハヒフヘホ")
@@ -17,7 +17,7 @@ DATA_STORE = {
 def get_clean_char(w, ignore_voiced, pos="head"):
     if not w: return ""
     w_clean = w.replace("ー", "")
-    char = w_clean if pos == "head" else w_clean[-1]
+    char = w_clean[0] if pos == "head" else w_clean[-1]
     res = SMALL_TO_LARGE.get(char, char)
     if ignore_voiced: res = res.translate(VOICE_MAP)
     return res
@@ -29,16 +29,15 @@ def index():
 @app.route('/search', methods=['POST'])
 def search():
     d = request.json
-    ignore_voiced = d.get('ignore_voiced', False)
-    exclude_dup = d.get('exclude_conjugate', False)
+    ignore_voiced = d.get('ignore_voiced', True)
     category = d.get('category', 'both')
     word_configs = d.get('word_configs', {})
     shift = int(d.get('shift_count', 0))
     is_gyukou = d.get('is_gyukou', False)
-    
-    # 単語数指定は常に絶対
     target_len = int(d.get('fixed_len_val', 3))
     
+    start_char = d.get('start_char', "")
+    if start_char and ignore_voiced: start_char = start_char.translate(VOICE_MAP)
     must_chars = [c.translate(VOICE_MAP) if ignore_voiced else c for c in d.get('must_char', "")]
     use_increasing = d.get('use_increasing', False)
     use_total_chars = d.get('use_total_chars', False)
@@ -51,46 +50,47 @@ def search():
     results = []
 
     def solve(path):
-        if len(results) >= 500: return
-        current_len = len(path)
-        current_total_chars = len("".join(path))
-
-        # 常に指定単語数に達した時のみ判定
-        if current_len == target_len:
-            if use_total_chars and current_total_chars != total_chars_val: return
-            check_text = "".join(path).translate(VOICE_MAP if ignore_voiced else {})
-            if all(mc in check_text for mc in must_chars) and all(mw in path for mw in must_words):
+        if len(results) >= 300: return
+        cur_len = len(path)
+        cur_txt = "".join(path)
+        
+        if cur_len == target_len:
+            if use_total_chars and len(cur_txt) != total_chars_val: return
+            check_txt = cur_txt.translate(VOICE_MAP if ignore_voiced else {})
+            if all(mc in check_txt for mc in must_chars) and all(mw in path for mw in must_words):
                 results.append(list(path))
             return
 
-        if current_len > target_len: return
-        if use_total_chars and current_total_chars > total_chars_val: return
-
         last_w = path[-1]
-        use_head = is_gyukou and (current_len % 2 == 0)
-        base_c = get_clean_char(last_w, ignore_voiced, "head" if use_head else "tail")
+        use_head_base = is_gyukou and (cur_len % 2 == 0)
+        base_c = get_clean_char(last_w, ignore_voiced, "head" if use_head_base else "tail")
         
         try:
+            # 常にCHARS_CIRCLEにある文字に寄せてからインデックス取得
             lookup_c = base_c.translate(VOICE_MAP) if base_c not in CHARS_CIRCLE else base_c
-            idx = CHARS_CIRCLE.index(lookup_c)
-            target = CHARS_CIRCLE[(idx + shift) % len(CHARS_CIRCLE)]
+            if lookup_c not in CHARS_CIRCLE: return
+            
+            target = CHARS_CIRCLE[(CHARS_CIRCLE.index(lookup_c) + shift) % 81]
             if ignore_voiced: target = target.translate(VOICE_MAP)
             
             for next_w in pool:
-                if next_w not in path:
-                    if use_increasing and len(next_w) <= len(last_w): continue
-                    check_tail = is_gyukou and (current_len % 2 != 0)
-                    next_c = get_clean_char(next_w, ignore_voiced, "tail" if check_tail else "head")
-                    if next_c == target:
-                        solve(path + [next_w])
+                if next_w in path: continue
+                if use_increasing and len(next_w) <= len(last_w): continue
+                
+                check_tail_next = is_gyukou and (cur_len % 2 != 0)
+                next_c = get_clean_char(next_w, ignore_voiced, "tail" if check_tail_next else "head")
+                
+                if next_c == target:
+                    solve(path + [next_w])
         except: return
 
-    sw = d.get('start_word')
+    sw = d.get('start_word', "").strip()
     starts = [sw] if (sw and sw in pool) else pool
     for w in starts:
+        if not sw and start_char and get_clean_char(w, ignore_voiced, "head") != start_char: continue
         solve([w])
 
     return jsonify({"routes": results, "count": len(results)})
 
 if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)), debug=True)
