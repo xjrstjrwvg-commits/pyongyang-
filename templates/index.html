@@ -1,96 +1,131 @@
-import os
-from flask import Flask, render_template, request, jsonify
-from collections import Counter
-
-app = Flask(__name__)
-
-# 81文字環状構造
-CHARS_CIRCLE = ["ア", "イ", "ウ", "エ", "オ", "カ", "キ", "ク", "ケ", "コ", "ガ", "ギ", "グ", "ゲ", "ゴ", "サ", "シ", "ス", "セ", "ソ", "ザ", "ジ", "ズ", "ゼ", "ゾ", "タ", "チ", "ツ", "テ", "ト", "ダ", "ヂ", "ヅ", "デ", "ド", "ナ", "ニ", "ヌ", "ネ", "ノ", "ハ", "ヒ", "フ", "ヘ", "ホ", "バ", "ビ", "ブ", "ベ", "ボ", "パ", "ピ", "プ", "ペ", "ポ", "マ", "ミ", "ム", "メ", "モ", "ヤ", "ユ", "ヨ", "ラ", "リ", "ル", "レ", "ロ", "ワ", "ン"]
-SMALL_TO_LARGE = {"ァ": "ア", "ィ": "イ", "ゥ": "ウ", "ェ": "エ", "ォ": "オ", "ッ": "ツ", "ャ": "ヤ", "ュ": "ユ", "ョ": "ヨ", "ヮ": "ワ"}
-VOICE_MAP = str.maketrans("ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ", "カキクケコサシスセソタチツテトハヒフヘホハヒフヘホ")
-
-DATA_STORE = {
-    "countries": ["アイスランド", "アイルランド", "アゼルバイジャン", "アフガニスタン", "アメリカ", "アラブシュチョウコクレンポウ", "アルジェリア", "アルゼンチン", "アルバニア", "アルメニア", "アンゴラ", "アンティグアバーブーダ", "アンドラ", "イエメン", "イギリス", "イスラエル", "イタリア", "イラク", "イラン", "インド", "インドネシア", "ウガンダ", "ウクライナ", "ウズベキスタン", "ウルグアイ", "エクアドル", "エジプト", "エストニア", "エスワティニ", "エチオピア", "エリトリア", "エルサルバドル", "オーストラリア", "オーストリア", "オマーン", "オランダ", "ガーナ", "カーボベルデ", "ガイアナ", "カザフスタン", "カタール", "カナダ", "ガボン", "カメルーン", "ガンビア", "カンボジア", "キタマケドニア", "ギニア", "ギニアビサウ", "キプロス", "キューバ", "ギリシャ", "キリバス", "キルギス", "グアテマラ", "クウェート", "クックショトウ", "グレナダ", "クロアチア", "ケニア", "コートジボワール", "コスタリカ", "コソボ", "コモロ", "コロンビア", "コンゴキョウワコク", "コンゴミンシュキョウワコク", "サウジアラビア", "サモア", "サントメプリンシペ", "ザンビア", "サンマリノ", "シエラレオネ", "ジブチ", "ジャマイカ", "ジョージア", "シリア", "シンガポール", "ジンバブエ", "スイス", "スウェーデン", "スーダン", "スペイン", "スリナム", "スリランカ", "スロバキア", "スロベニア", "セーシェル", "セキドウギニア", "セネガル", "セルビア", "セントクリストファーネービス", "セントビンセントグレナディーンショトウ", "セントルシア", "ソマリア", "ソロモンショトウ", "タイ", "ダイカンミンコク", "タジキスタン", "タンザニア", "チェコ", "チャド", "チュウオウアフリカ", "チュウカジンミンキョウワコク", "チュニジア", "チョウセンミンシュシュギジンミンキョウワコク", "チリ", "ツバル", "デンマーク", "ドイツ", "トーゴ", "ドミニカキョウワコク", "ドミニカコク", "トリニダードトバゴ", "トルクメニスタン", "トルコ", "トンガ", "ナイジェリア", "ナウル", "ナミビア", "ニウエ", "ニカラグア", "ニジェール", "ニホン", "ニュージーランド", "ネパール", "ノルウェー", "バーレーン", "ハイチ", "パキスタン", "バチカンシコク", "パナマ", "バヌアツ", "バハマ", "パプアニューギニア", "パラオ", "パラグアイ", "バルバドス", "ハンガリー", "バングラデシュ", "ヒガシティモール", "フィジー", "フィリピン", "フィンランド", "ブータン", "ブラジル", "フランス", "ブルガリア", "ブルキナファソ", "ブルネイ", "ブルンジ", "ベトナム", "ベナン", "ベネズエラ", "ベラルーシ", "ベリーズ", "ペルー", "ベルギー", "ポーランド", "ボスニアヘルツェゴビナ", "ボツワナ", "ボリビア", "ポルトガル", "ホンジュラス", "マーシャルショトウ", "マダガスカル", "マラウイ", "マリ", "マルタ", "マレーシア", "ミクロネシアレンポウ", "ミナミアフリカキョウワコク", "ミナミスーダン", "ミャンマー", "メキシコ", "モーリシャス", "モーリタニア", "モザンビーク", "モナコ", "モルディブ", "モルドバ", "モロッコ", "モンゴル", "モンテネグロ", "ヨルダン", "ラオス", "ラトビア", "リトアニア", "リビア", "リヒテンシュタイン", "リベリア", "ルーマニア", "ルクセンブルク", "ルワンダ", "レソト", "レバノン", "ロシア"],
-    "capitals": ["アクラ", "アシガバット", "アスタナ", "アスマラ", "アスンシオン", "アディスアベバ", "アテネ", "アバルア", "アピア", "アブジャ", "アブダビ", "アムステルダム", "アルジェ", "アロフィ", "アンカラ", "アンタナナリボ", "アンドララベリャ", "アンマン", "イスラマバード", "ウィーン", "ウィントフック", "ウェリントン", "ウランバートル", "エルサレム", "エレバン", "オスロ", "オタワ", "カイロ", "カストリーズ", "カトマンズ", "カブール", "カラカス", "カンパラ", "キーウ", "キガリ", "キシナウ", "ギテガ", "キト", "キャンベラ", "キングスタウン", "キングストン", "キンシャサ", "グアテマラシティ", "クアラルンプール", "クウェート", "コナクリ", "コペンハーゲン", "ザグレブ", "サヌア", "サラエボ", "サンサルバドル", "サンティアゴ", "サントドミンゴ", "サントメ", "サンホセ", "サンマリノ", "ジブチ", "ジャカルタ", "ジュバ", "ジョージタウン", "シンガポール", "スコピエ", "ストックホルム", "スバ", "スリジャヤワルダナプラコッテ", "セントジョージズ", "セントジョンズ", "ソウル", "ソフィア", "ダカール", "タシケント", "ダッカ", "ダブリン", "ダマスカス", "タラワ", "タリン", "チュニス", "ティラナ", "ディリ", "ティンプー", "テグシガルパ", "テヘラン", "デリー", "トウキョウ", "ドゥシャンベ", "ドーハ", "ドドマ", "トビリシ", "トリポリ", "ナイロビ", "ナッソー", "ニアメ", "ニコシア", "ヌアクショット", "ヌクアロファ", "ネピドー", "バクー", "バグダッド", "バセテール", "パナマシティ", "バチカン", "ハノイ", "ハバナ", "ハボローネ", "バマコ", "パラマリボ", "ハラレ", "パリ", "パリキール", "ハルツーム", "バレッタ", "バンギ", "バンコク", "バンジュール", "バンダルスリブガワン", "ビエンチャン", "ビクトリア", "ビサウ", "ビシュケク", "ピョンヤン", "ビリニュス", "ファドゥーツ", "ブエノスアイレス", "ブカレスト", "ブダペスト", "フナフティ", "プノンペン", "プライア", "ブラザビル", "ブラジリア", "ブラチスラバ", "プラハ", "フリータウン", "プリシュティナ", "ブリッジタウン", "ブリュッセル", "プレトリア", "ベイルート", "ベオグラード", "ペキン", "ヘルシンキ", "ベルモパン", "ベルリン", "ベルン", "ポートオブスペイン", "ポートビラ", "ポートモレスビー", "ポートルイス", "ボゴタ", "ポドゴリツァ", "ホニアラ", "ポルトープランス", "ポルトノボ", "マジュロ", "マスカット", "マセル", "マドリード", "マナーマ", "マナグア", "マニラ", "マプト", "マラボ", "マルキョク", "マレ", "ミンスク", "ムババーネ", "メキシコシティ", "モガディシュ", "モスクワ", "モナコ", "モロニ", "モンテビデオ", "モンロビア", "ヤウンデ", "ヤムスクロ", "ヤレン", "ラパス", "ラバト", "リーブルビル", "リガ", "リスボン", "リマ", "リヤド", "リュブリャナ", "リロングウェ", "ルアンダ", "ルクセンブルク", "ルサカ", "レイキャビク", "ローマ", "ロゾー", "ロメ", "ロンドン", "ワガドゥグー", "ワシントンディーシー", "ワルシャワ", "ンジャメナ"]
-}
-
-def get_clean_char(w, ignore_voiced, pos="head"):
-    if not w: return ""
-    w_clean = w.replace("ー", "").replace("・", "")
-    char = w_clean if pos == "head" else w_clean[-1]
-    res = SMALL_TO_LARGE.get(char, char)
-    if ignore_voiced: res = res.translate(VOICE_MAP)
-    return res
-
-@app.route('/')
-def index():
-    return render_template('index.html', countries=DATA_STORE["countries"], capitals=DATA_STORE["capitals"])
-
-@app.route('/search', methods=['POST'])
-def search():
-    d = request.json
-    ignore_voiced = d.get('ignore_voiced', False)
-    category = d.get('category', 'both')
-    word_configs = d.get('word_configs', {})
-    shift = int(d.get('shift_count', 0))
-    is_gyukou = d.get('is_gyukou', False)
-    target_len = int(d.get('fixed_len_val', 3))
-    
-    start_char = d.get('start_char', "")
-    if start_char and ignore_voiced: start_char = start_char.translate(VOICE_MAP)
-    must_chars = [c.translate(VOICE_MAP) if ignore_voiced else c for c in d.get('must_char', "")]
-    use_increasing = d.get('use_increasing', False)
-    use_total_chars = d.get('use_total_chars', False)
-    total_chars_val = int(d.get('total_chars_val', 15))
-
-    base_pool = DATA_STORE["countries"] if category == "countries" else DATA_STORE["capitals"] if category == "capitals" else list(set(DATA_STORE["countries"] + DATA_STORE["capitals"]))
-    pool = [w for w in base_pool if word_configs.get(w) != 2]
-    must_words = [w for w, v in word_configs.items() if v == 1]
-
-    results = []
-
-    def solve(path):
-        if len(results) >= 10000: return
-        cur_len = len(path)
-        
-        if cur_len == target_len:
-            cur_txt = "".join(path)
-            if use_total_chars and len(cur_txt) != total_chars_val: return
-            check_txt = cur_txt.translate(VOICE_MAP if ignore_voiced else {})
-            if all(mc in check_txt for mc in must_chars) and all(mw in path for mw in must_words):
-                results.append(list(path))
-            return
-
-        last_w = path[-1]
-        use_head_base = is_gyukou and (cur_len % 2 == 0)
-        base_c = get_clean_char(last_w, ignore_voiced, "head" if use_head_base else "tail")
-        
-        try:
-            # 清音化設定に関わらず環状リストでの移動を保証
-            lookup_c = base_c.translate(VOICE_MAP) if (ignore_voiced or base_c not in CHARS_CIRCLE) else base_c
-            if lookup_c not in CHARS_CIRCLE: return
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no text-align: center">
+    <title>極・しりとり v2026</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        input, select, button { font-size: 16px !important; } 
+        .tab-active { background-color: #4f46e5; color: white; }
+        .word-must { background-color: #3b82f6 !important; color: white !important; }
+        .word-ban { background-color: #ef4444 !important; color: white !important; text-decoration: line-through; }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 pb-20 font-sans">
+    <div class="max-w-md mx-auto px-4 pt-6 space-y-4 text-center">
+        <div class="bg-white rounded-3xl shadow-xl p-6 space-y-4">
+            <h1 class="font-black text-indigo-600 text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
             
-            target = CHARS_CIRCLE[(CHARS_CIRCLE.index(lookup_c) + shift) % 81]
-            if ignore_voiced: target = target.translate(VOICE_MAP)
+            <input id="sw" oninput="toK(this)" placeholder="開始単語" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none">
             
-            for next_w in pool:
-                if next_w in path: continue
-                if use_increasing and len(next_w) <= len(last_w): continue
-                
-                check_tail_next = is_gyukou and (cur_len % 2 != 0)
-                next_c = get_clean_char(next_w, ignore_voiced, "tail" if check_tail_next else "head")
-                
-                if next_c == target:
-                    solve(path + [next_w])
-        except: return
+            <div class="grid grid-cols-3 gap-2">
+                <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
+                <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200">
+                <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
+            </div>
 
-    sw = d.get('start_word', "").strip()
-    starts = [sw] if (sw and sw in pool) else pool
-    for w in starts:
-        if not sw and start_char and get_clean_char(w, ignore_voiced, "head") != start_char: continue
-        solve([w])
+            <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl">
+                <button onclick="setCat('countries')" id="cat-countries" class="cat-btn text-[10px] font-bold py-2 rounded-xl">国名</button>
+                <button onclick="setCat('capitals')" id="cat-capitals" class="cat-btn text-[10px] font-bold py-2 rounded-xl">首都</button>
+                <button onclick="setCat('both')" id="cat-both" class="cat-btn tab-active text-[10px] font-bold py-2 rounded-xl">両方</button>
+            </div>
 
-    return jsonify({"routes": results, "count": len(results)})
+            <div class="bg-slate-50 p-4 rounded-3xl ring-1 ring-slate-100 space-y-4 text-left">
+                <div class="flex items-center justify-between border-b pb-2">
+                    <span class="text-[11px] font-black text-indigo-600">固定単語数</span>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm">
+                        <button onclick="adjV('fixedLenVal', -1)">-</button><span id="fixedLenVal" class="font-black text-xs w-4 text-center">3</span><button onclick="adjV('fixedLenVal', 1)">+</button>
+                    </div>
+                </div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useTotalChars" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">合計文字数</span></label>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('totalCharsVal', -1)">-</button><span id="totalCharsVal" class="font-black text-xs w-6 text-center">15</span><button onclick="adjV('totalCharsVal', 1)">+</button></div>
+                </div>
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useIncreasing" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">だんだん長く</span></label>
+            </div>
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+            <div class="grid grid-cols-2 gap-3">
+                <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">ずらし</span>
+                    <div class="flex items-center gap-2"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600">+0</span><button onclick="adjS(1)">+</button></div>
+                </div>
+                <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic"><span>牛耕</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600"></label>
+            </div>
+
+            <div class="space-y-2 px-1 text-left">
+                <label class="flex justify-between items-center text-[10px] font-bold cursor-pointer"><span>濁点・半濁点を無視 (清音化)</span><input type="checkbox" id="vo" checked class="w-5 h-5 accent-indigo-600"></label>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="runSearch()" id="runBtn" class="flex- bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">探索</button>
+                <button onclick="resetAll()" class="flex-1 bg-slate-200 text-slate-600 font-bold rounded-2xl">リセット</button>
+            </div>
+        </div>
+
+        <div class="flex justify-between items-center px-2">
+            <div id="resCount" class="text-[10px] font-bold text-slate-400 uppercase tracking-widest"></div>
+            <button id="allCopyBtn" onclick="copyAll()" class="hidden text-[10px] font-black text-indigo-600 bg-indigo-50 px-3 py-1 rounded-full border">ALL COPY</button>
+        </div>
+        <div id="results" class="space-y-3"></div>
+
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden text-left">
+            <button onclick="toggleWords()" class="w-full p-4 flex justify-between items-center font-bold text-slate-500 bg-slate-50"><span>単語フィルタ</span><span id="arrow">▼</span></button>
+            <div id="wordBoard" class="hidden p-4 border-t"><input id="wordSearch" oninput="renderWordList()" placeholder="検索..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none"><div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div></div>
+        </div>
+    </div>
+
+    <script>
+        let currentCat = 'both', shiftCount = 0, wordConfigs = {}, lastResults = [];
+        const allWords = Array.from(new Set([...{{ countries|tojson }}, ...{{ capitals|tojson }}])).sort();
+
+        function toK(el) { el.value = el.value.replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 0x60)); }
+        function adjS(v) { shiftCount = Math.max(-10, Math.min(10, shiftCount + v)); document.getElementById('sDisp').innerText = (shiftCount >= 0 ? '+' : '') + shiftCount; }
+        function adjV(id, v) { const el = document.getElementById(id); el.innerText = Math.max(1, parseInt(el.innerText) + v); }
+        function setCat(c) { currentCat = c; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('tab-active')); document.getElementById('cat-' + c).classList.add('tab-active'); }
+        function toggleWords() { const b = document.getElementById('wordBoard'); b.classList.toggle('hidden'); document.getElementById('arrow').innerText = b.classList.contains('hidden') ? '▼' : '▲'; if(!b.classList.contains('hidden')) renderWordList(); }
+
+        function resetAll() {
+            document.querySelectorAll('input[type="text"]').forEach(i => i.value = "");
+            document.querySelectorAll('input[type="checkbox"]').forEach(i => { if(i.id==='vo') i.checked=true; else i.checked=false; });
+            shiftCount = 0; document.getElementById('sDisp').innerText = "+0";
+            document.getElementById('fixedLenVal').innerText = "3";
+            wordConfigs = {}; renderWordList();
+            document.getElementById('results').innerHTML = "";
+            document.getElementById('resCount').innerText = "";
+            document.getElementById('allCopyBtn').classList.add('hidden');
+        }
+
+        function renderWordList() {
+            const query = document.getElementById('wordSearch').value, container = document.getElementById('wordList'); container.innerHTML = '';
+            allWords.forEach(w => { if (query && !w.includes(query)) return; const btn = document.createElement('button'); const state = wordConfigs[w] || 0; btn.className = `px-2 py-1 rounded-full text-[9px] font-bold border ${state==1?'word-must':state==2?'word-ban':'bg-white text-slate-500'}`; btn.innerText = w; btn.onclick = () => { wordConfigs[w] = (state + 1) % 3; renderWordList(); }; container.appendChild(btn); });
+        }
+
+        async function runSearch() {
+            const btn = document.getElementById('runBtn'); btn.disabled = true; btn.innerText = "...";
+            const payload = {
+                start_word: document.getElementById('sw').value, start_char: document.getElementById('sc').value, must_char: document.getElementById('mc').value, category: currentCat, shift_count: shiftCount,
+                fixed_len_val: parseInt(document.getElementById('fixedLenVal').innerText),
+                use_total_chars: document.getElementById('useTotalChars').checked, total_chars_val: parseInt(document.getElementById('totalCharsVal').innerText),
+                use_increasing: document.getElementById('useIncreasing').checked,
+                is_gyukou: document.getElementById('gk').checked,
+                ignore_voiced: document.getElementById('vo').checked,
+                word_configs: wordConfigs
+            };
+            const res = await fetch('/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json(); lastResults = data.routes;
+            const container = document.getElementById('results'); container.innerHTML = '';
+            data.routes.slice(0, 100).forEach(route => {
+                const text = route.join(" → "), div = document.createElement('div');
+                div.className = "bg-white p-4 rounded-2xl shadow-sm border-l-4 border-indigo-500 flex flex-col gap-1";
+                div.innerHTML = `<div class="text-sm font-bold text-slate-700 text-left">${text}</div><div class="flex justify-between items-center text-[9px] text-slate-400"><span>${route.join("").length}字</span><button onclick="copyOne('${text}')" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded">COPY</button></div>`;
+                container.appendChild(div);
+            });
+            document.getElementById('resCount').innerText = `${data.count} ROUTES`;
+            if(data.count > 0) document.getElementById('allCopyBtn').classList.remove('hidden');
+            btn.disabled = false; btn.innerText = "探索";
+        }
+        function copyOne(t) { navigator.clipboard.writeText(t); alert("COPY OK!"); }
+        function copyAll() { navigator.clipboard.writeText(lastResults.map(r => r.join(" → ")).join("\n")); alert("ALL COPY DONE!"); }
+    </script>
+</body>
+</html>
