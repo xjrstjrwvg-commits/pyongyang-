@@ -5,72 +5,173 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極・しりとり v2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <style>input, select, button { font-size: 16px !important; } .tab-active { background-color: #4f46e5; color: white; }</style>
+    <style>
+        input, select, button { font-size: 16px !important; } 
+        .tab-active { background-color: #4f46e5; color: white; }
+        .result-card { animation: fadeIn 0.3s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
 </head>
 <body class="bg-slate-100 text-slate-900 pb-20 font-sans">
     <div class="max-w-md mx-auto px-4 pt-6 space-y-4">
         <div class="bg-white rounded-3xl shadow-xl p-6 space-y-4">
             <h1 class="font-black text-indigo-600 text-center text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
-            <input id="sw" oninput="toK(this)" placeholder="開始単語 (任意)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none">
+            
+            <!-- 開始単語入力 -->
+            <input id="sw" oninput="toK(this)" placeholder="開始単語 (例: アメリカ)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none focus:ring-indigo-300">
+            
+            <!-- 文字指定 -->
             <div class="grid grid-cols-3 gap-2">
-                <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
-                <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200 border border-orange-100">
-                <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
+                <input id="sc" maxlength="1" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
+                <input id="mc" maxlength="1" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200 border border-orange-100">
+                <input id="ec" maxlength="1" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
             </div>
+
+            <!-- カテゴリ切替 -->
             <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl">
-                <button onclick="setCat('countries')" id="cat-countries" class="cat-btn text-[10px] font-bold py-2 rounded-xl">国</button>
+                <button onclick="setCat('countries')" id="cat-countries" class="cat-btn text-[10px] font-bold py-2 rounded-xl">国名</button>
                 <button onclick="setCat('capitals')" id="cat-capitals" class="cat-btn text-[10px] font-bold py-2 rounded-xl">首都</button>
                 <button onclick="setCat('both')" id="cat-both" class="cat-btn tab-active text-[10px] font-bold py-2 rounded-xl">両方</button>
             </div>
+
+            <!-- ずらし & 牛耕 -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
                     <span class="text-[10px] font-bold text-slate-400">ずらし</span>
-                    <div class="flex items-center gap-2"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600">+1</span><button onclick="adjS(1)">+</button></div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="adjS(-1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-indigo-600">-</button>
+                        <span id="sDisp" class="font-black text-indigo-600 w-8 text-center">+0</span>
+                        <button onclick="adjS(1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold text-indigo-600">+</button>
+                    </div>
                 </div>
-                <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic"><span>牛耕(往復)</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600"></label>
+                <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic cursor-pointer">
+                    <span>牛耕(往復)</span>
+                    <input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600">
+                </label>
             </div>
+
+            <!-- 長さ & ソート -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
                     <span class="text-[10px] font-bold text-slate-400">長さ</span>
-                    <div class="flex items-center gap-2"><button onclick="adjL(-1)">-</button><span id="lDisp" class="font-black">5</span><button onclick="adjL(1)">+</button></div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="adjL(-1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold">-</button>
+                        <span id="lDisp" class="font-black w-6 text-center">3</span>
+                        <button onclick="adjL(1)" class="w-8 h-8 bg-white rounded-full shadow-sm font-bold">+</button>
+                    </div>
                 </div>
-                <select id="st" class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 font-black text-[10px] outline-none"><option value="default">標準</option><option value="length_desc">文字数多</option></select>
+                <select id="st" class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 font-black text-[10px] outline-none">
+                    <option value="default">標準順</option>
+                    <option value="length_desc">文字数多い順</option>
+                </select>
             </div>
+
+            <!-- オプション -->
             <div class="space-y-2 px-1">
-                <label class="flex justify-between items-center text-[10px] font-bold"><span>濁点無視</span><input type="checkbox" id="vo" class="w-5 h-5 accent-indigo-600"></label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600"><span>重複一括排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-blue-600"><span>必須字は1回のみ</span><input type="checkbox" id="lo" class="w-5 h-5 accent-blue-600"></label>
+                <label class="flex justify-between items-center text-[10px] font-bold cursor-pointer">
+                    <span>濁点無視 (カ＝ガ)</span>
+                    <input type="checkbox" id="vo" checked class="w-5 h-5 accent-indigo-600">
+                </label>
+                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600 cursor-pointer">
+                    <span>重複一括排除</span>
+                    <input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600">
+                </label>
             </div>
-            <button onclick="runSearch()" id="runBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl">経路を探索</button>
+
+            <!-- 検索ボタン -->
+            <button onclick="runSearch()" id="runBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg shadow-indigo-200 active:scale-95 transition-transform">経路を探索する</button>
         </div>
+
+        <!-- 結果表示エリア -->
         <div id="resCount" class="text-center text-[10px] font-bold text-slate-400"></div>
         <div id="results" class="space-y-3"></div>
     </div>
+
     <script>
-        let currentCat = 'both', shiftCount = 1, maxLen = 5;
+        let currentCat = 'both', shiftCount = 0, maxLen = 3;
+
+        // カタカナ変換
         function toK(el) { el.value = el.value.replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 0x60)); }
-        function adjS(v) { shiftCount = Math.max(-10, Math.min(10, shiftCount + v)); document.getElementById('sDisp').innerText = (shiftCount >= 0 ? '+' : '') + shiftCount; }
-        function adjL(v) { maxLen = Math.max(2, Math.min(10, maxLen + v)); document.getElementById('lDisp').innerText = maxLen; }
-        function setCat(c) { currentCat = c; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('tab-active')); document.getElementById('cat-' + c).classList.add('tab-active'); }
+        
+        // ずらし調整
+        function adjS(v) { 
+            shiftCount = Math.max(-10, Math.min(10, shiftCount + v)); 
+            document.getElementById('sDisp').innerText = (shiftCount >= 0 ? '+' : '') + shiftCount; 
+        }
+        
+        // 長さ調整
+        function adjL(v) { 
+            maxLen = Math.max(2, Math.min(10, maxLen + v)); 
+            document.getElementById('lDisp').innerText = maxLen; 
+        }
+
+        // カテゴリ設定
+        function setCat(c) {
+            currentCat = c;
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('tab-active'));
+            document.getElementById('cat-' + c).classList.add('tab-active');
+        }
+
+        // 検索実行
         async function runSearch() {
-            const btn = document.getElementById('runBtn'); btn.disabled = true; btn.innerText = "探索中...";
+            const btn = document.getElementById('runBtn');
+            const resArea = document.getElementById('results');
+            const countArea = document.getElementById('resCount');
+            
+            btn.disabled = true;
+            btn.innerText = "探索中...";
+            resArea.innerHTML = '';
+            
             const payload = {
-                start_word: document.getElementById('sw').value, start_char: document.getElementById('sc').value,
-                must_char: document.getElementById('mc').value, end_char: document.getElementById('ec').value,
-                category: currentCat, shift_count: shiftCount, max_len: maxLen,
-                is_gyukou: document.getElementById('gk').checked, ignore_voiced: document.getElementById('vo').checked,
-                exclude_conjugate: document.getElementById('ex').checked, limit_one: document.getElementById('lo').checked,
-                sort_type: document.getElementById('st').value, word_configs: {}
+                start_word: document.getElementById('sw').value.trim(),
+                start_char: document.getElementById('sc').value.trim(),
+                must_char: document.getElementById('mc').value.trim(),
+                end_char: document.getElementById('ec').value.trim(),
+                category: currentCat,
+                shift_count: shiftCount,
+                max_len: maxLen,
+                is_gyukou: document.getElementById('gk').checked,
+                ignore_voiced: document.getElementById('vo').checked,
+                exclude_conjugate: document.getElementById('ex').checked
             };
-            const res = await fetch('/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-            const data = await res.json();
-            const container = document.getElementById('results'); container.innerHTML = '';
-            data.routes.slice(0, 100).forEach(route => {
-                const div = document.createElement('div'); div.className = "bg-white p-4 rounded-2xl shadow-sm text-sm font-bold flex flex-wrap gap-1";
-                div.innerText = route.join(" → "); container.appendChild(div);
-            });
-            document.getElementById('resCount').innerText = `${data.count} 件見つかりました`;
-            btn.disabled = false; btn.innerText = "経路を探索";
+
+            try {
+                const res = await fetch('/search', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                
+                countArea.innerText = `${data.count} 件のルートが見つかりました`;
+                
+                if (data.routes.length === 0) {
+                    resArea.innerHTML = '<div class="text-center text-slate-400 text-sm py-10">条件に合う経路が見つかりませんでした</div>';
+                } else {
+                    data.routes.slice(0, 100).forEach(route => {
+                        const div = document.createElement('div');
+                        div.className = "result-card bg-white p-4 rounded-2xl shadow-sm border-l-4 border-indigo-500 flex flex-wrap gap-2 items-center";
+                        route.forEach((w, i) => {
+                            const span = document.createElement('span');
+                            span.className = "text-sm font-bold text-slate-700";
+                            span.innerText = w;
+                            div.appendChild(span);
+                            if (i < route.length - 1) {
+                                const arrow = document.createElement('span');
+                                arrow.className = "text-indigo-300 text-xs";
+                                arrow.innerText = "▶";
+                                div.appendChild(arrow);
+                            }
+                        });
+                        resArea.appendChild(div);
+                    });
+                }
+            } catch (e) {
+                resArea.innerHTML = '<div class="text-center text-red-400 text-sm py-10">通信エラーが発生しました</div>';
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "経路を探索する";
+            }
         }
     </script>
 </body>
