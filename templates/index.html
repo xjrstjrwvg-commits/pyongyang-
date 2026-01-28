@@ -2,14 +2,14 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no text-align: center">
     <title>極・しりとり v2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         input, select, button { font-size: 16px !important; } 
         .tab-active { background-color: #4f46e5; color: white; }
-        .word-must { background-color: #3b82f6 !important; color: white !important; border-color: #2563eb !important; }
-        .word-ban { background-color: #ef4444 !important; color: white !important; text-decoration: line-through; border-color: #dc2626 !important; }
+        .word-must { background-color: #3b82f6 !important; color: white !important; }
+        .word-ban { background-color: #ef4444 !important; color: white !important; text-decoration: line-through; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900 pb-20 font-sans">
@@ -20,8 +20,8 @@
             <input id="sw" oninput="toK(this)" placeholder="開始単語 (例: アメリカ)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none">
             
             <div class="grid grid-cols-3 gap-2">
-                <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
-                <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200">
+                <input id="sc" oninput="toK(this)" placeholder="開始字" class="hidden p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
+                <input id="mc" oninput="toK(this)" placeholder="必須字(複数可)" class="col-span-2 p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200">
                 <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
             </div>
 
@@ -31,20 +31,23 @@
                 <button onclick="setCat('both')" id="cat-both" class="cat-btn tab-active text-[10px] font-bold py-2 rounded-xl">両方</button>
             </div>
 
-            <!-- 独立ルール設定 -->
+            <!-- 固定単語数 & 独立ルール -->
             <div class="bg-slate-50 p-4 rounded-3xl ring-1 ring-slate-100 space-y-4 text-left">
-                <p class="text-[10px] font-black text-slate-400 border-b pb-1">検索ルール設定 (掛け合わせ自由)</p>
-                <div class="flex items-center justify-between">
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useFixedLen" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">単語数を指定</span></label>
-                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('fixedLenVal', -1)">-</button><span id="fixedLenVal" class="font-black text-xs w-4 text-center">5</span><button onclick="adjV('fixedLenVal', 1)">+</button></div>
+                <div class="flex items-center justify-between border-b pb-2">
+                    <span class="text-[11px] font-black text-indigo-600">固定単語数 (必須)</span>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm">
+                        <button onclick="adjV('fixedLenVal', -1)" class="font-bold text-indigo-600 px-1">-</button>
+                        <span id="fixedLenVal" class="font-black text-xs w-4 text-center">3</span>
+                        <button onclick="adjV('fixedLenVal', 1)" class="font-bold text-indigo-600 px-1">+</button>
+                    </div>
                 </div>
+
                 <div class="flex items-center justify-between">
                     <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useTotalChars" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">合計文字数を指定</span></label>
-                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('totalCharsVal', -1)">-</button><span id="totalCharsVal" class="font-black text-xs w-4 text-center">20</span><button onclick="adjV('totalCharsVal', 1)">+</button></div>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('totalCharsVal', -1)">-</button><span id="totalCharsVal" class="font-black text-xs w-6 text-center">15</span><button onclick="adjV('totalCharsVal', 1)">+</button></div>
                 </div>
-                <label class="flex items-center justify-between cursor-pointer">
-                    <div class="flex items-center gap-2"><input type="checkbox" id="useIncreasing" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">単語をだんだん長くする</span></div>
-                </label>
+                
+                <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useIncreasing" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">単語をだんだん長くする</span></label>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
@@ -56,7 +59,7 @@
 
             <div class="space-y-2 px-1">
                 <label class="flex justify-between items-center text-[10px] font-bold"><span>濁点無視</span><input type="checkbox" id="vo" checked class="w-5 h-5 accent-indigo-600"></label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600"><span>重複一括排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
+                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600"><span>重複排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
             </div>
 
             <button onclick="runSearch()" id="runBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">経路を探索する</button>
@@ -64,7 +67,7 @@
 
         <div class="bg-white rounded-3xl shadow-xl overflow-hidden text-left">
             <button onclick="toggleWords()" class="w-full p-4 flex justify-between items-center font-bold text-slate-500 bg-slate-50"><span>単語別設定 (必須/禁止)</span><span id="arrow">▼</span></button>
-            <div id="wordBoard" class="hidden p-4 border-t"><input id="wordSearch" oninput="renderWordList()" placeholder="検索..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none"><div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div></div>
+            <div id="wordBoard" class="hidden p-4 border-t"><input id="wordSearch" oninput="renderWordList()" placeholder="絞り込み..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none"><div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div></div>
         </div>
 
         <div id="resCount" class="text-center text-[10px] font-bold text-slate-400"></div>
@@ -89,9 +92,8 @@
         async function runSearch() {
             const btn = document.getElementById('runBtn'); btn.disabled = true; btn.innerText = "探索中...";
             const payload = {
-                start_word: document.getElementById('sw').value, start_char: document.getElementById('sc').value, must_char: document.getElementById('mc').value,
-                category: currentCat, shift_count: shiftCount,
-                use_fixed_len: document.getElementById('useFixedLen').checked, fixed_len_val: parseInt(document.getElementById('fixedLenVal').innerText),
+                start_word: document.getElementById('sw').value, must_char: document.getElementById('mc').value, category: currentCat, shift_count: shiftCount,
+                fixed_len_val: parseInt(document.getElementById('fixedLenVal').innerText),
                 use_total_chars: document.getElementById('useTotalChars').checked, total_chars_val: parseInt(document.getElementById('totalCharsVal').innerText),
                 use_increasing: document.getElementById('useIncreasing').checked,
                 is_gyukou: document.getElementById('gk').checked, ignore_voiced: document.getElementById('vo').checked, exclude_conjugate: document.getElementById('ex').checked, word_configs: wordConfigs
@@ -104,9 +106,9 @@
                 div.innerHTML = `<div class="text-sm font-bold text-slate-700">${text}</div><div class="flex justify-between items-center text-[9px] text-slate-400"><span>計 ${route.join("").length}字 / ${route.length}語</span><button onclick="copy('${text}')" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold">コピー</button></div>`;
                 container.appendChild(div);
             });
-            document.getElementById('resCount').innerText = `${data.count} 件ヒット`; btn.disabled = false; btn.innerText = "経路を探索する";
+            document.getElementById('resCount').innerText = `${data.count} 件`; btn.disabled = false; btn.innerText = "経路を探索する";
         }
-        function copy(t) { navigator.clipboard.writeText(t); alert("コピーしました！"); }
+        function copy(t) { navigator.clipboard.writeText(t); alert("コピー！"); }
     </script>
 </body>
 </html>
