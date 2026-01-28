@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no text-align: center">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>極・しりとり v2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -13,15 +13,15 @@
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900 pb-20 font-sans">
-    <div class="max-w-md mx-auto px-4 pt-6 space-y-4">
+    <div class="max-w-md mx-auto px-4 pt-6 space-y-4 text-center">
         <div class="bg-white rounded-3xl shadow-xl p-6 space-y-4">
-            <h1 class="font-black text-indigo-600 text-center text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
+            <h1 class="font-black text-indigo-600 text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
             
             <input id="sw" oninput="toK(this)" placeholder="開始単語 (例: アメリカ)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none">
             
             <div class="grid grid-cols-3 gap-2">
                 <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
-                <input id="mc" oninput="toK(this)" placeholder="必須字(複数可)" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200">
+                <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200">
                 <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100">
             </div>
 
@@ -31,23 +31,24 @@
                 <button onclick="setCat('both')" id="cat-both" class="cat-btn tab-active text-[10px] font-bold py-2 rounded-xl">両方</button>
             </div>
 
-            <!-- 長さモード -->
-            <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 space-y-2">
-                <div class="flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400 text-center">長さモード</span>
-                    <select id="lenMode" class="text-[10px] font-bold p-1 rounded bg-white">
-                        <option value="fixed">単語数固定</option>
-                        <option value="increasing">だんだん長く</option>
-                        <option value="total_chars">合計文字数指定</option>
-                    </select>
+            <!-- 独立ルール設定 -->
+            <div class="bg-slate-50 p-4 rounded-3xl ring-1 ring-slate-100 space-y-4 text-left">
+                <p class="text-[10px] font-black text-slate-400 border-b pb-1">検索ルール設定 (掛け合わせ自由)</p>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useFixedLen" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">単語数を指定</span></label>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('fixedLenVal', -1)">-</button><span id="fixedLenVal" class="font-black text-xs w-4 text-center">5</span><button onclick="adjV('fixedLenVal', 1)">+</button></div>
                 </div>
-                <div class="flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">目標値</span>
-                    <div class="flex items-center gap-2"><button onclick="adjL(-1)">-</button><span id="lDisp" class="font-black">5</span><button onclick="adjL(1)">+</button></div>
+                <div class="flex items-center justify-between">
+                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="useTotalChars" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">合計文字数を指定</span></label>
+                    <div class="flex items-center gap-2 bg-white px-2 py-1 rounded-xl shadow-sm"><button onclick="adjV('totalCharsVal', -1)">-</button><span id="totalCharsVal" class="font-black text-xs w-4 text-center">20</span><button onclick="adjV('totalCharsVal', 1)">+</button></div>
                 </div>
+                <label class="flex items-center justify-between cursor-pointer">
+                    <div class="flex items-center gap-2"><input type="checkbox" id="useIncreasing" class="w-4 h-4 accent-indigo-600"><span class="text-[11px] font-bold">単語をだんだん長くする</span></div>
+                </label>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-slate-400">ずらし</span>
+                <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center"><span class="text-[10px] font-bold text-slate-400">ずらし</span>
                     <div class="flex items-center gap-2"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600">+0</span><button onclick="adjS(1)">+</button></div>
                 </div>
                 <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic"><span>牛耕(往復)</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600"></label>
@@ -61,15 +62,9 @@
             <button onclick="runSearch()" id="runBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg">経路を探索する</button>
         </div>
 
-        <!-- 単語フィルタ（アコーディオン） -->
-        <div class="bg-white rounded-3xl shadow-xl overflow-hidden">
-            <button onclick="toggleWords()" class="w-full p-4 flex justify-between items-center font-bold text-slate-500 bg-slate-50">
-                <span>単語別設定 (必須/禁止)</span><span id="arrow">▼</span>
-            </button>
-            <div id="wordBoard" class="hidden p-4 border-t">
-                <input id="wordSearch" oninput="renderWordList()" placeholder="検索..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none">
-                <div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div>
-            </div>
+        <div class="bg-white rounded-3xl shadow-xl overflow-hidden text-left">
+            <button onclick="toggleWords()" class="w-full p-4 flex justify-between items-center font-bold text-slate-500 bg-slate-50"><span>単語別設定 (必須/禁止)</span><span id="arrow">▼</span></button>
+            <div id="wordBoard" class="hidden p-4 border-t"><input id="wordSearch" oninput="renderWordList()" placeholder="検索..." class="w-full p-2 mb-3 bg-slate-100 rounded-lg text-xs outline-none"><div id="wordList" class="flex flex-wrap gap-1 max-h-48 overflow-y-auto"></div></div>
         </div>
 
         <div id="resCount" class="text-center text-[10px] font-bold text-slate-400"></div>
@@ -77,59 +72,41 @@
     </div>
 
     <script>
-        let currentCat = 'both', shiftCount = 0, maxLen = 5, wordConfigs = {};
+        let currentCat = 'both', shiftCount = 0, wordConfigs = {};
         const allWords = Array.from(new Set([...{{ countries|tojson }}, ...{{ capitals|tojson }}])).sort();
 
         function toK(el) { el.value = el.value.replace(/[ぁ-ん]/g, s => String.fromCharCode(s.charCodeAt(0) + 0x60)); }
         function adjS(v) { shiftCount = Math.max(-10, Math.min(10, shiftCount + v)); document.getElementById('sDisp').innerText = (shiftCount >= 0 ? '+' : '') + shiftCount; }
-        function adjL(v) { maxLen = Math.max(1, maxLen + v); document.getElementById('lDisp').innerText = maxLen; }
+        function adjV(id, v) { const el = document.getElementById(id); el.innerText = Math.max(1, parseInt(el.innerText) + v); }
         function setCat(c) { currentCat = c; document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('tab-active')); document.getElementById('cat-' + c).classList.add('tab-active'); }
         function toggleWords() { const b = document.getElementById('wordBoard'); b.classList.toggle('hidden'); document.getElementById('arrow').innerText = b.classList.contains('hidden') ? '▼' : '▲'; if(!b.classList.contains('hidden')) renderWordList(); }
 
         function renderWordList() {
-            const query = document.getElementById('wordSearch').value;
-            const container = document.getElementById('wordList');
-            container.innerHTML = '';
-            allWords.forEach(w => {
-                if (query && !w.includes(query)) return;
-                const btn = document.createElement('button');
-                const state = wordConfigs[w] || 0;
-                btn.className = `px-2 py-1 rounded-full text-[9px] font-bold border ${state==1?'word-must':state==2?'word-ban':'bg-white text-slate-500'}`;
-                btn.innerText = w;
-                btn.onclick = () => { wordConfigs[w] = (state + 1) % 3; renderWordList(); };
-                container.appendChild(btn);
-            });
+            const query = document.getElementById('wordSearch').value, container = document.getElementById('wordList'); container.innerHTML = '';
+            allWords.forEach(w => { if (query && !w.includes(query)) return; const btn = document.createElement('button'); const state = wordConfigs[w] || 0; btn.className = `px-2 py-1 rounded-full text-[9px] font-bold border ${state==1?'word-must':state==2?'word-ban':'bg-white text-slate-500'}`; btn.innerText = w; btn.onclick = () => { wordConfigs[w] = (state + 1) % 3; renderWordList(); }; container.appendChild(btn); });
         }
 
         async function runSearch() {
             const btn = document.getElementById('runBtn'); btn.disabled = true; btn.innerText = "探索中...";
             const payload = {
-                start_word: document.getElementById('sw').value,
-                start_char: document.getElementById('sc').value,
-                must_char: document.getElementById('mc').value,
-                category: currentCat, shift_count: shiftCount, max_len: maxLen,
-                is_gyukou: document.getElementById('gk').checked,
-                ignore_voiced: document.getElementById('vo').checked,
-                exclude_conjugate: document.getElementById('ex').checked,
-                len_mode: document.getElementById('lenMode').value,
-                word_configs: wordConfigs
+                start_word: document.getElementById('sw').value, start_char: document.getElementById('sc').value, must_char: document.getElementById('mc').value,
+                category: currentCat, shift_count: shiftCount,
+                use_fixed_len: document.getElementById('useFixedLen').checked, fixed_len_val: parseInt(document.getElementById('fixedLenVal').innerText),
+                use_total_chars: document.getElementById('useTotalChars').checked, total_chars_val: parseInt(document.getElementById('totalCharsVal').innerText),
+                use_increasing: document.getElementById('useIncreasing').checked,
+                is_gyukou: document.getElementById('gk').checked, ignore_voiced: document.getElementById('vo').checked, exclude_conjugate: document.getElementById('ex').checked, word_configs: wordConfigs
             };
             const res = await fetch('/search', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(payload) });
-            const data = await res.json();
-            const container = document.getElementById('results'); container.innerHTML = '';
+            const data = await res.json(), container = document.getElementById('results'); container.innerHTML = '';
             data.routes.forEach(route => {
-                const text = route.join(" → ");
-                const div = document.createElement('div');
+                const text = route.join(" → "), div = document.createElement('div');
                 div.className = "bg-white p-4 rounded-2xl shadow-sm flex flex-col gap-2";
-                div.innerHTML = `<div class="text-sm font-bold text-slate-700">${text}</div>
-                    <div class="flex justify-between items-center"><span class="text-[9px] text-slate-400">計 ${route.join("").length}字</span>
-                    <button onclick="copy('${text}')" class="text-[10px] bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold">コピー</button></div>`;
+                div.innerHTML = `<div class="text-sm font-bold text-slate-700">${text}</div><div class="flex justify-between items-center text-[9px] text-slate-400"><span>計 ${route.join("").length}字 / ${route.length}語</span><button onclick="copy('${text}')" class="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-md font-bold">コピー</button></div>`;
                 container.appendChild(div);
             });
-            document.getElementById('resCount').innerText = `${data.count} 件ヒット`;
-            btn.disabled = false; btn.innerText = "経路を探索する";
+            document.getElementById('resCount').innerText = `${data.count} 件ヒット`; btn.disabled = false; btn.innerText = "経路を探索する";
         }
-        function copy(t) { navigator.clipboard.writeText(t); alert("コピー完了！"); }
+        function copy(t) { navigator.clipboard.writeText(t); alert("コピーしました！"); }
     </script>
 </body>
 </html>
