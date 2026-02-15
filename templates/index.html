@@ -8,120 +8,81 @@
     <style>
         input, select, button { font-size: 16px !important; } 
         .tab-active { background-color: #4f46e5; color: white; }
-        /* スムーズなフェードイン */
         #results { animation: fadeIn 0.3s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
     </style>
 </head>
 <body class="bg-slate-100 text-slate-900 pb-20 font-sans">
     <div class="max-w-md mx-auto px-4 pt-6 space-y-4">
-        <!-- メイン設定カード -->
         <div class="bg-white rounded-3xl shadow-xl p-6 space-y-4 border border-white">
             <h1 class="font-black text-indigo-600 text-center text-xl italic tracking-tighter">SHIRITORI ENGINE v2026</h1>
             
-            <!-- 単語・文字入力エリア -->
             <input id="sw" oninput="toK(this)" placeholder="開始単語 (任意)" class="w-full p-4 bg-slate-50 rounded-2xl ring-1 ring-slate-100 outline-none focus:ring-indigo-300 transition-all">
             
             <div class="grid grid-cols-3 gap-2">
-                <div class="flex flex-col gap-1">
-                    <span class="text-[9px] font-bold text-slate-400 ml-2 uppercase">Start</span>
-                    <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100 focus:ring-indigo-300">
-                </div>
-                <div class="flex flex-col gap-1">
-                    <span class="text-[9px] font-bold text-orange-400 ml-2 uppercase">Must (複数可)</span>
-                    <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200 border border-orange-100 focus:ring-orange-400">
-                </div>
-                <div class="flex flex-col gap-1">
-                    <span class="text-[9px] font-bold text-slate-400 ml-2 uppercase">End</span>
-                    <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100 focus:ring-indigo-300">
-                </div>
+                <input id="sc" oninput="toK(this)" placeholder="開始字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100 focus:ring-indigo-300">
+                <input id="mc" oninput="toK(this)" placeholder="必須字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-orange-200 border border-orange-100 focus:ring-orange-400">
+                <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100 focus:ring-indigo-300">
             </div>
 
-            <!-- カテゴリ選択 -->
             <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl">
                 <button onclick="setCat('countries')" id="cat-countries" class="text-[10px] font-bold py-2 rounded-xl transition-all">国</button>
                 <button onclick="setCat('capitals')" id="cat-capitals" class="text-[10px] font-bold py-2 rounded-xl transition-all">首都</button>
                 <button onclick="setCat('both')" id="cat-both" class="tab-active text-[10px] font-bold py-2 rounded-xl transition-all">両方</button>
             </div>
 
-            <!-- 特殊ルール設定 -->
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
                     <span class="text-[10px] font-bold text-slate-400 uppercase">ずらし</span>
-                    <div class="flex items-center gap-3">
-                        <button onclick="adjS(-1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm active:scale-90">-</button>
-                        <span id="sDisp" class="font-black text-indigo-600 w-6 text-center">+1</span>
-                        <button onclick="adjS(1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm active:scale-90">+</button>
-                    </div>
+                    <div class="flex items-center gap-3"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600 w-6 text-center">+1</span><button onclick="adjS(1)">+</button></div>
                 </div>
                 <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic cursor-pointer">
-                    <span>牛耕 (往復)</span>
-                    <input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600">
+                    <span>牛耕 (往復)</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600">
                 </label>
             </div>
 
-            <!-- 長さとソート -->
             <div class="grid grid-cols-2 gap-3">
-                <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
-                    <span class="text-[10px] font-bold text-slate-400 uppercase">長さ</span>
-                    <div class="flex items-center gap-3">
-                        <button onclick="adjL(-1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm active:scale-90">-</button>
-                        <span id="lDisp" class="font-black w-4 text-center">5</span>
-                        <button onclick="adjL(1)" class="w-6 h-6 flex items-center justify-center bg-white rounded-full shadow-sm active:scale-90">+</button>
-                    </div>
+                <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold">
+                    <span class="text-slate-400 uppercase">長さ</span>
+                    <div class="flex items-center gap-3"><button onclick="adjL(-1)">-</button><span id="lDisp" class="font-black w-4 text-center">5</span><button onclick="adjL(1)">+</button></div>
                 </div>
-                <select id="st" class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 font-black text-[10px] outline-none appearance-none text-center">
-                    <option value="default">標準順</option>
-                    <option value="length_desc">文字数が多い順</option>
-                </select>
+                <select id="st" class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 font-black text-[10px] outline-none text-center appearance-none"><option value="default">標準順</option><option value="length_desc">文字数多</option></select>
             </div>
 
-            <!-- チェックボックス群 -->
             <div class="space-y-2 px-1">
-                <label class="flex justify-between items-center text-[10px] font-bold cursor-pointer">
-                    <span>濁点・半濁点を無視して接続</span>
-                    <input type="checkbox" id="vo" class="w-5 h-5 accent-indigo-600">
-                </label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600 cursor-pointer">
-                    <span>重複ペアを一括排除 (2026式)</span>
-                    <input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600">
-                </label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-indigo-600 cursor-pointer">
-                    <span>必須字をルート全体で合計1回のみ</span>
-                    <input type="checkbox" id="lo" class="w-5 h-5 accent-indigo-600">
-                </label>
+                <label class="flex justify-between items-center text-[10px] font-bold cursor-pointer"><span>濁点・半濁点無視</span><input type="checkbox" id="vo" class="w-5 h-5 accent-indigo-600"></label>
+                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600 cursor-pointer"><span>重複ペア一括排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
+                <label class="flex justify-between items-center text-[10px] font-bold text-indigo-600 cursor-pointer"><span>必須字を全体で1回のみ</span><input type="checkbox" id="lo" class="w-5 h-5 accent-indigo-600"></label>
             </div>
 
             <button onclick="openModal()" class="w-full py-2 text-[10px] font-bold text-indigo-400 bg-indigo-50 rounded-xl uppercase tracking-widest hover:bg-indigo-100 transition-colors">Word Settings</button>
             <button onclick="run()" id="runBtn" class="w-full bg-indigo-600 text-white font-black py-4 rounded-2xl shadow-lg active:scale-[0.98] transition-all">探索開始</button>
         </div>
 
-        <!-- ステータスエリア -->
         <div id="statusArea" class="hidden flex justify-between items-center px-2">
             <span id="hc" class="text-sm font-black text-slate-600 italic uppercase">0 HIT</span>
-            <button onclick="copyAll()" class="text-[10px] font-bold text-indigo-600 bg-white px-5 py-2 rounded-full shadow-sm ring-1 ring-indigo-50 active:bg-slate-50">全てコピー</button>
+            <button onclick="copyAll()" class="text-[10px] font-bold text-indigo-600 bg-white px-5 py-2 rounded-full shadow-sm ring-1 ring-indigo-50">全てコピー</button>
         </div>
 
-        <!-- 結果表示エリア -->
         <div id="results" class="space-y-3"></div>
     </div>
 
-    <!-- 単語設定モーダル -->
     <div id="modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-        <div class="bg-white w-full max-w-sm max-h-[80vh] rounded-3xl p-6 flex flex-col shadow-2xl">
+        <div class="bg-white w-full max-w-sm max-h-[80vh] rounded-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
             <div class="flex justify-between items-center mb-4">
-                <span class="font-bold text-slate-500 uppercase text-xs tracking-widest">詳細単語設定</span>
-                <button onclick="closeModal()" class="text-2xl text-slate-300 hover:text-slate-600">✕</button>
+                <div class="flex items-center gap-2">
+                    <span class="font-bold text-slate-500 uppercase text-xs">詳細単語設定</span>
+                    <button onclick="resetWc()" class="text-[9px] font-bold text-red-400 bg-red-50 px-2 py-1 rounded-md">RESET</button>
+                </div>
+                <button onclick="closeModal()" class="text-2xl text-slate-300">✕</button>
             </div>
             <div class="overflow-y-auto space-y-1 pr-2 custom-scrollbar">
                 {% for w in all_words %}
                 <div class="flex justify-between py-2 border-b border-slate-50 text-xs items-center">
                     <span class="font-medium text-slate-700">{{ w }}</span>
-                    <select id="cfg-{{ w }}" onchange="wc['{{ w }}']=parseInt(this.value)" class="p-1 bg-slate-50 rounded-lg outline-none text-[10px] font-bold border border-slate-100">
-                        <option value="0">使用可</option>
-                        <option value="1" class="text-blue-600">必須</option>
-                        <option value="2" class="text-red-600">禁止</option>
-                    </select>
+                    <select id="cfg-{{ w }}" onchange="wc['{{ w }}']=parseInt(this.value)" class="p-1 bg-slate-50 rounded-lg outline-none text-[10px] font-bold"><option value="0">可</option><option value="1">必須</option><option value="2">禁止</option></select>
                 </div>
                 {% endfor %}
             </div>
@@ -130,101 +91,25 @@
 
     <script>
         let l=5, s=1, wc={}, cat='both';
-
-        // ひらがなをカタカナに変換
         function toK(e){e.value=e.value.replace(/[ぁ-ん]/g,s=>String.fromCharCode(s.charCodeAt(0)+0x60));}
-        
-        // 長さ調整
         function adjL(v){l=Math.max(2,Math.min(12,l+v));document.getElementById('lDisp').innerText=l;}
-        
-        // ずらし調整
         function adjS(v){s+=v;document.getElementById('sDisp').innerText=(s>=0?"+":"")+s;}
-        
-        // カテゴリ切り替え
-        function setCat(c){
-            cat=c;
-            ['countries','capitals','both'].forEach(i=>document.getElementById('cat-'+i).classList.remove('tab-active'));
-            document.getElementById('cat-'+c).classList.add('tab-active');
-        }
-
+        function setCat(c){cat=c;['countries','capitals','both'].forEach(i=>document.getElementById('cat-'+i).classList.remove('tab-active'));document.getElementById('cat-'+c).classList.add('tab-active');}
         function openModal(){document.getElementById('modal').classList.remove('hidden');}
         function closeModal(){document.getElementById('modal').classList.add('hidden');}
+        function resetWc(){if(!confirm("リセットしますか？"))return;wc={};document.querySelectorAll('[id^="cfg-"]').forEach(s=>s.value="0");}
 
         async function run(){
-            const btn = document.getElementById('runBtn');
-            const resDiv = document.getElementById('results');
-            btn.disabled = true;
-            btn.innerText = "探索中...";
-            document.getElementById('statusArea').classList.remove('hidden');
-            document.getElementById('hc').innerText = "CALCULATING...";
-            resDiv.innerHTML = "";
-
-            const payload = {
-                start_word: document.getElementById('sw').value,
-                start_char: document.getElementById('sc').value,
-                must_char: document.getElementById('mc').value,
-                end_char: document.getElementById('ec').value,
-                shift_count: s,
-                is_gyukou: document.getElementById('gk').checked,
-                ignore_voiced: document.getElementById('vo').checked,
-                exclude_conjugate: document.getElementById('ex').checked,
-                limit_one: document.getElementById('lo').checked,
-                category: cat,
-                max_len: l,
-                word_configs: wc,
-                sort_type: document.getElementById('st').value
-            };
-
-            try {
-                const r = await fetch('/search', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify(payload)
-                });
-                const d = await r.json();
-                
-                btn.disabled = false;
-                btn.innerText = "探索開始";
-                document.getElementById('hc').innerText = `${d.count} HIT`;
-
-                if (d.count === 0) {
-                    resDiv.innerHTML = `
-                        <div class="bg-orange-50 p-8 rounded-3xl border-2 border-dashed border-orange-200 text-center">
-                            <p class="text-orange-400 font-bold text-sm">条件に合うルートが<br>見つかりませんでした</p>
-                        </div>`;
-                } else {
-                    resDiv.innerHTML = d.routes.map(rt => `
-                        <div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200 group transition-all hover:shadow-md">
-                            <div class="route-text font-bold text-indigo-900 mb-3 leading-relaxed text-sm">
-                                ${rt.map(w => `<span class="inline-block">${w}</span>`).join(' <span class="text-indigo-300 mx-1">→</span> ')}
-                            </div>
-                            <div class="flex justify-end">
-                                <button onclick="copyText('${rt.join(' → ')}', this)" class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-4 py-2 rounded-lg active:bg-indigo-200 transition-colors">
-                                    コピー
-                                </button>
-                            </div>
-                        </div>`).join('');
-                }
-            } catch (e) {
-                btn.disabled = false;
-                btn.innerText = "探索開始";
-                alert("エラーが発生しました。");
-            }
+            const btn=document.getElementById('runBtn'), resDiv=document.getElementById('results');
+            btn.disabled=true; btn.innerText="探索中..."; document.getElementById('statusArea').classList.remove('hidden');
+            resDiv.innerHTML="";
+            const r=await fetch('/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({start_word:document.getElementById('sw').value,start_char:document.getElementById('sc').value,must_char:document.getElementById('mc').value,end_char:document.getElementById('ec').value,shift_count:s,is_gyukou:document.getElementById('gk').checked,ignore_voiced:document.getElementById('vo').checked,exclude_conjugate:document.getElementById('ex').checked,limit_one:document.getElementById('lo').checked,category:cat,max_len:l,word_configs:wc,sort_type:document.getElementById('st').value})});
+            const d=await r.json(); btn.disabled=false; btn.innerText="探索開始"; document.getElementById('hc').innerText=`${d.count} HIT`;
+            if(d.count===0){resDiv.innerHTML=`<div class="bg-orange-50 p-8 rounded-3xl border-2 border-dashed border-orange-200 text-center text-orange-400 font-bold">条件に合うルートが見つかりませんでした</div>`;}
+            else{resDiv.innerHTML=d.routes.map(rt=>`<div class="bg-white p-5 rounded-3xl shadow-sm border border-slate-200"><div class="route-text font-bold text-indigo-900 mb-3 text-sm">${rt.join(' → ')}</div><div class="flex justify-end"><button onclick="copyText('${rt.join(' → ')}', this)" class="text-[10px] font-bold text-indigo-500 bg-indigo-50 px-4 py-2 rounded-lg">コピー</button></div></div>`).join('');}
         }
-
-        function copyText(text, btn) {
-            navigator.clipboard.writeText(text);
-            const original = btn.innerText;
-            btn.innerText = "DONE!";
-            setTimeout(() => btn.innerText = original, 1000);
-        }
-
-        function copyAll(){
-            const t = Array.from(document.querySelectorAll('.route-text')).map(el => el.innerText.replace(/\s+/g, ' ')).join('\n');
-            if(!t) return;
-            navigator.clipboard.writeText(t);
-            alert("全ルートをコピーしました");
-        }
+        function copyText(t, b){navigator.clipboard.writeText(t); b.innerText="DONE!"; setTimeout(()=>b.innerText="コピー",1000);}
+        function copyAll(){const t=Array.from(document.querySelectorAll('.route-text')).map(el=>el.innerText).join('\n');navigator.clipboard.writeText(t);alert("コピー完了");}
     </script>
 </body>
 </html>
