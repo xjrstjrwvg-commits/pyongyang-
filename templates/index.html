@@ -27,16 +27,21 @@
                 <input id="ec" oninput="toK(this)" placeholder="終了字" class="p-3 bg-slate-50 rounded-xl text-center outline-none ring-1 ring-slate-100 focus:ring-indigo-300">
             </div>
 
+            <!-- 初期アクティブを「国」に変更 -->
             <div class="grid grid-cols-3 gap-1 p-1 bg-slate-100 rounded-2xl">
-                <button onclick="setCat('countries')" id="cat-countries" class="text-[10px] font-bold py-2 rounded-xl transition-all">国</button>
+                <button onclick="setCat('countries')" id="cat-countries" class="tab-active text-[10px] font-bold py-2 rounded-xl transition-all">国</button>
                 <button onclick="setCat('capitals')" id="cat-capitals" class="text-[10px] font-bold py-2 rounded-xl transition-all">首都</button>
-                <button onclick="setCat('both')" id="cat-both" class="tab-active text-[10px] font-bold py-2 rounded-xl transition-all">両方</button>
+                <button onclick="setCat('both')" id="cat-both" class="text-[10px] font-bold py-2 rounded-xl transition-all">両方</button>
             </div>
 
             <div class="grid grid-cols-2 gap-3">
                 <div class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center">
                     <span class="text-[10px] font-bold text-slate-400 uppercase">ずらし</span>
-                    <div class="flex items-center gap-3"><button onclick="adjS(-1)">-</button><span id="sDisp" class="font-black text-indigo-600 w-6 text-center">+1</span><button onclick="adjS(1)">+</button></div>
+                    <div class="flex items-center gap-3">
+                        <button onclick="adjS(-1)">-</button>
+                        <span id="sDisp" class="font-black text-indigo-600 w-6 text-center">+0</span>
+                        <button onclick="adjS(1)">+</button>
+                    </div>
                 </div>
                 <label class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 flex justify-between items-center text-[10px] font-bold italic cursor-pointer">
                     <span>牛耕 (往復)</span><input type="checkbox" id="gk" class="w-6 h-6 accent-indigo-600">
@@ -51,10 +56,10 @@
                 <select id="st" class="bg-slate-50 p-4 rounded-2xl ring-1 ring-slate-100 font-black text-[10px] outline-none text-center appearance-none"><option value="default">標準順</option><option value="length_desc">文字数多</option></select>
             </div>
 
-            <div class="space-y-2 px-1">
-                <label class="flex justify-between items-center text-[10px] font-bold cursor-pointer"><span>濁点・半濁点無視</span><input type="checkbox" id="vo" class="w-5 h-5 accent-indigo-600"></label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-orange-600 cursor-pointer"><span>重複ペア一括排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
-                <label class="flex justify-between items-center text-[10px] font-bold text-indigo-600 cursor-pointer"><span>必須字を全体で1回のみ</span><input type="checkbox" id="lo" class="w-5 h-5 accent-indigo-600"></label>
+            <div class="space-y-2 px-1 text-[10px] font-bold">
+                <label class="flex justify-between items-center cursor-pointer"><span>濁点・半濁点無視</span><input type="checkbox" id="vo" class="w-5 h-5 accent-indigo-600"></label>
+                <label class="flex justify-between items-center text-orange-600 cursor-pointer"><span>重複ペア一括排除</span><input type="checkbox" id="ex" class="w-5 h-5 accent-orange-600"></label>
+                <label class="flex justify-between items-center text-indigo-600 cursor-pointer"><span>必須字を各1回のみ</span><input type="checkbox" id="lo" class="w-5 h-5 accent-indigo-600"></label>
             </div>
 
             <button onclick="openModal()" class="w-full py-2 text-[10px] font-bold text-indigo-400 bg-indigo-50 rounded-xl uppercase tracking-widest hover:bg-indigo-100 transition-colors">Word Settings</button>
@@ -69,6 +74,7 @@
         <div id="results" class="space-y-3"></div>
     </div>
 
+    <!-- モーダル（単語設定） -->
     <div id="modal" class="fixed inset-0 bg-black/50 hidden z-50 flex items-center justify-center p-4 backdrop-blur-sm">
         <div class="bg-white w-full max-w-sm max-h-[80vh] rounded-3xl p-6 flex flex-col shadow-2xl overflow-hidden">
             <div class="flex justify-between items-center mb-4">
@@ -90,14 +96,15 @@
     </div>
 
     <script>
-        let l=5, s=1, wc={}, cat='both';
+        // s=0, cat='countries' に変更
+        let l=5, s=0, wc={}, cat='countries';
         function toK(e){e.value=e.value.replace(/[ぁ-ん]/g,s=>String.fromCharCode(s.charCodeAt(0)+0x60));}
         function adjL(v){l=Math.max(2,Math.min(12,l+v));document.getElementById('lDisp').innerText=l;}
         function adjS(v){s+=v;document.getElementById('sDisp').innerText=(s>=0?"+":"")+s;}
         function setCat(c){cat=c;['countries','capitals','both'].forEach(i=>document.getElementById('cat-'+i).classList.remove('tab-active'));document.getElementById('cat-'+c).classList.add('tab-active');}
         function openModal(){document.getElementById('modal').classList.remove('hidden');}
         function closeModal(){document.getElementById('modal').classList.add('hidden');}
-        function resetWc(){if(!confirm("リセットしますか？"))return;wc={};document.querySelectorAll('[id^="cfg-"]').forEach(s=>s.value="0");}
+        function resetWc(){if(!confirm("設定をリセットしますか？"))return;wc={};document.querySelectorAll('[id^="cfg-"]').forEach(s=>s.value="0");}
 
         async function run(){
             const btn=document.getElementById('runBtn'), resDiv=document.getElementById('results');
