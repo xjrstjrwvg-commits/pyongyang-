@@ -52,7 +52,7 @@ def search():
     must_words = [w for w, v in word_configs.items() if v == 1]
 
     def solve(path):
-        if len(results) >= 3000: return
+        if len(results) >= 100000: return
         if len(path) == max_len:
             if not all(m in path for m in must_words): return
             if end_char:
