@@ -7,81 +7,62 @@
     <style>
         body { background: #020617; color: #f1f5f9; }
         .glass { background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; backdrop-filter: blur(12px); }
-        input { background: #0f172a; border: 1px solid #475569; color: white; border-radius: 12px; padding: 10px; font-size: 14px; }
-        .btn-glow { background: linear-gradient(135deg, #2563eb, #7c3aed); box-shadow: 0 0 20px rgba(37, 99, 235, 0.4); }
+        input, select { background: #0f172a; border: 1px solid #475569; color: white; border-radius: 12px; padding: 10px; }
+        .btn-primary { background: linear-gradient(135deg, #2563eb, #7c3aed); }
     </style>
 </head>
-<body class="p-4 md:p-8">
+<body class="p-6">
     <div class="max-w-6xl mx-auto space-y-6">
         <header class="flex justify-between items-center border-b border-blue-900/50 pb-4">
-            <h1 class="text-3xl font-black italic tracking-tighter text-blue-500">ULTRA WORLD ENGINE</h1>
-            <span class="text-[10px] font-mono text-slate-500 uppercase tracking-widest">Master Edition</span>
+            <h1 class="text-3xl font-black italic text-blue-500 tracking-tighter">ULTRA WORLD ENGINE</h1>
+            <div class="flex gap-4 items-center">
+                <label class="text-[10px] uppercase text-slate-500 font-bold">Sort By:</label>
+                <select id="sort_type" class="text-[10px] p-1 h-8">
+                    <option value="kana">50音順</option>
+                    <option value="length">合計文字数順</option>
+                </select>
+            </div>
         </header>
 
         <div class="glass p-8 rounded-[32px] grid grid-cols-1 lg:grid-cols-3 gap-8">
-            <!-- Col 1: Word & Characters -->
             <div class="space-y-4">
-                <h3 class="text-xs font-bold text-blue-400 uppercase tracking-widest">Entry Settings</h3>
-                <input id="sw" placeholder="開始単語 (任意)" class="w-full">
+                <input id="sw" placeholder="開始単語" class="w-full">
                 <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">開始字</label>
-                        <input id="sc" placeholder="始" class="w-full text-center">
-                    </div>
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">必須字</label>
-                        <input id="mc" placeholder="必" class="w-full text-center">
-                    </div>
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">終了字</label>
-                        <input id="ec" placeholder="終" class="w-full text-center">
-                    </div>
+                    <input id="sc" placeholder="開始字" class="text-center">
+                    <input id="mc" placeholder="必須字" class="text-center">
+                    <input id="ec" placeholder="終了字" class="text-center">
                 </div>
             </div>
 
-            <!-- Col 2: Logic & Depth -->
             <div class="space-y-4">
-                <h3 class="text-xs font-bold text-purple-400 uppercase tracking-widest">Search Logic</h3>
                 <div class="grid grid-cols-3 gap-2">
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">単語数</label>
-                        <input type="number" id="ml" value="5" class="w-full text-center">
-                    </div>
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">位置ずらし</label>
-                        <input type="number" id="ps" value="0" class="w-full text-center">
-                    </div>
-                    <div>
-                        <label class="text-[9px] text-slate-500 block mb-1">環状ずらし</label>
-                        <input type="number" id="ks" value="0" class="w-full text-center">
-                    </div>
+                    <div><label class="text-[9px] text-slate-500 block mb-1">長さ</label><input type="number" id="ml" value="5" class="w-full text-center"></div>
+                    <div><label class="text-[9px] text-slate-500 block mb-1">物理位置</label><input type="number" id="ps" value="0" class="w-full text-center"></div>
+                    <div><label class="text-[9px] text-slate-500 block mb-1">環状ずらし</label><input type="number" id="ks" value="0" class="w-full text-center"></div>
                 </div>
-                <div class="grid grid-cols-1 gap-1 pt-1 text-[11px]">
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="conj"> 共役排除</label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="rt"> 牛耕(重複許可)</label>
-                    <label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="lo"> 必須字 各1回</label>
+                <div class="flex gap-4 text-[10px] pt-1">
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="conj"> 共役排除</label>
+                    <label class="flex items-center gap-1 cursor-pointer"><input type="checkbox" id="rt"> 重複許可</label>
                 </div>
             </div>
 
-            <!-- Col 3: Data & Action -->
             <div class="flex flex-col space-y-4">
-                <h3 class="text-xs font-bold text-green-400 uppercase tracking-widest">Data Source</h3>
-                <div class="flex gap-4 text-xs">
-                    <label class="flex items-center gap-2"><input type="checkbox" name="cat" value="country" checked> 国名</label>
-                    <label class="flex items-center gap-2"><input type="checkbox" name="cat" value="capital"> 首都</label>
+                <div class="flex gap-4 text-xs font-bold">
+                    <label><input type="checkbox" name="cat" value="country" checked> 国名のみ</label>
+                    <label><input type="checkbox" name="cat" value="capital"> 首都も含める</label>
                 </div>
-                <button onclick="run()" id="btn" class="flex-grow btn-glow text-white font-black rounded-2xl transition-all active:scale-95 text-lg">EXPLORE</button>
+                <button onclick="run()" id="btn" class="flex-grow btn-primary text-white font-black rounded-2xl active:scale-95 transition-all text-xl">EXPLORE</button>
             </div>
         </div>
 
-        <div id="res" class="grid grid-cols-1 gap-3 pb-20"></div>
+        <div id="res" class="space-y-2 pb-20"></div>
     </div>
 
     <script>
         async function run(){
             const btn=document.getElementById('btn');
             const resDiv=document.getElementById('res');
-            btn.innerText="COMPUTING..."; btn.disabled=true;
+            btn.innerText="探索中..."; btn.disabled=true;
             resDiv.innerHTML="";
 
             const cats = Array.from(document.querySelectorAll('input[name="cat"]:checked')).map(c => c.value);
@@ -99,7 +80,7 @@
                     kana_shift:document.getElementById('ks').value,
                     exclude_conjugates:document.getElementById('conj').checked,
                     round_trip:document.getElementById('rt').checked,
-                    limit_one:document.getElementById('lo').checked,
+                    sort_type:document.getElementById('sort_type').value,
                     categories: cats
                 })
             });
@@ -107,11 +88,9 @@
             btn.innerText="EXPLORE"; btn.disabled=false;
             
             resDiv.innerHTML = d.count ? d.routes.map((rt, i)=>`
-                <div class="glass p-4 rounded-2xl border-l-4 border-blue-500 animate-in fade-in slide-in-from-bottom-2">
-                    <div class="text-[9px] text-blue-400 mb-2 font-mono">PATH #${String(i+1).padStart(3,'0')} | ${rt.length} WORDS</div>
-                    <div class="overflow-x-auto pb-1 text-sm font-bold whitespace-nowrap scrollbar-hide">
-                        ${rt.join(' <span class="text-blue-500 mx-1">→</span> ')}
-                    </div>
+                <div class="glass p-3 rounded-xl border-l-2 border-blue-500 text-sm font-bold flex justify-between items-center animate-in fade-in slide-in-from-bottom-1">
+                    <div><span class="text-[9px] text-blue-400 mr-2">#${i+1}</span>${rt.join(' → ')}</div>
+                    <div class="text-[9px] text-slate-500 font-mono ml-4">${rt.join('').length}文字</div>
                 </div>
             `).join('') : '<p class="text-center text-slate-600 font-bold py-10 italic">No Routes Found</p>';
         }
