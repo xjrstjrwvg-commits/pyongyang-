@@ -3,12 +3,9 @@ import time
 import sys
 from flask import Flask, render_template, request, jsonify
 
-# 50単語の深層探索に対応
 sys.setrecursionlimit(5000)
-
 app = Flask(__name__)
 
-# 50音環状リスト
 KANA_LIST = "アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン"
 SMALL_TO_LARGE = {"ァ": "ア", "ィ": "イ", "ゥ": "ウ", "ェ": "エ", "ォ": "オ", "ッ": "ツ", "ャ": "ヤ", "ュ": "ユ", "ョ": "ヨ", "ヮ": "ワ"}
 VOICE_MAP = str.maketrans("ガギグゲゴザジズゼゾダヂヅデドバビブベボパピプペポ", "カキクケコサシスセソタチツテトハヒフヘホハヒフヘホ")
@@ -46,31 +43,23 @@ def search():
     round_trip = d.get('round_trip', False)
     must_chars = [c.translate(VOICE_MAP) for c in d.get('must_char', "")]
     limit_one = d.get('limit_one', False)
+    sort_type = d.get('sort_type', 'kana') # 'kana' or 'length'
     
-    # 開始字・終了字の取得
     start_char = d.get('start_char', "").translate(VOICE_MAP)
     end_char = d.get('end_char', "").translate(VOICE_MAP)
     
     selected_cats = d.get('categories', ["country"])
-    word_pool = []
-    for cat in selected_cats:
-        word_pool.extend(DICTIONARIES.get(cat, []))
-    word_pool = list(set(word_pool))
+    word_pool = list(set([w for cat in selected_cats for w in DICTIONARIES.get(cat, [])]))
 
     results = []
     start_time = time.time()
     timeout = 15
 
     def solve(path, used_pairs):
-        if time.time() - start_time > timeout or len(results) >= 100: return
+        if time.time() - start_time > timeout or len(results) >= 1500: return
         
         if len(path) == max_len:
-            # 終了字チェック
-            if end_char:
-                tail = get_clean_char(path[-1], "tail", pos_shift)
-                if tail != end_char: return
-            
-            # 必須字チェック
+            if end_char and get_clean_char(path[-1], "tail", pos_shift) != end_char: return
             if must_chars:
                 full = "".join(path).translate(VOICE_MAP)
                 if not all(mc in full for mc in must_chars): return
@@ -88,18 +77,24 @@ def search():
             if get_clean_char(next_w, "head", pos_shift) == target_head:
                 pair = tuple(sorted([path[-1], next_w]))
                 if exclude_conjugates and pair in used_pairs: continue
-                
                 new_used = used_pairs.copy()
                 new_used.add(pair)
                 solve(path + [next_w], new_used)
 
     sw = d.get('start_word')
     starts = [sw] if (sw in word_pool) else word_pool
+    starts.sort()
+
     for w in starts:
-        # 開始字チェック
-        if not sw and start_char:
-            if get_clean_char(w, "head", pos_shift) != start_char: continue
+        if len(results) >= 1500: break
+        if not sw and start_char and get_clean_char(w, "head", pos_shift) != start_char: continue
         solve([w], set())
+
+    # ソート処理
+    if sort_type == 'length':
+        results.sort(key=lambda x: (len("".join(x)), x)) # 文字数順（同じなら50音）
+    else:
+        results.sort() # 50音順
 
     return jsonify({"routes": results, "count": len(results)})
 
