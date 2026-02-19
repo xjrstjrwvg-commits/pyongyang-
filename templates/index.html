@@ -6,8 +6,9 @@
     <title>極・ULTRA ENGINE</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        let wordStates = {}; 
+        let wordStates = {}; // 0:Normal, 1:Block, 2:Force
         let masterDataCache = {};
+        let currentRoutes = [];
 
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
@@ -16,10 +17,12 @@
 
         function saveSettings() {
             const settings = {
-                sw: document.getElementById('sw').value, sc: document.getElementById('sc').value, ec: document.getElementById('ec').value,
-                ml: document.getElementById('ml').value, ks: document.getElementById('ks').value, ps: document.getElementById('ps').value,
-                ttl: document.getElementById('ttl').value, conj: document.getElementById('conj').checked,
-                rt: document.getElementById('rt').checked, sort: document.getElementById('sort_type').value,
+                sw: document.getElementById('sw').value, sc: document.getElementById('sc').value,
+                mc: document.getElementById('mc').value, ec: document.getElementById('ec').value,
+                ml: document.getElementById('ml').value, ks: document.getElementById('ks').value,
+                ps: document.getElementById('ps').value, ttl: document.getElementById('ttl').value,
+                conj: document.getElementById('conj').checked, rt: document.getElementById('rt').checked,
+                sort: document.getElementById('sort_type').value,
                 cats: Array.from(document.querySelectorAll('input[name="cat"]:checked')).map(c => c.value),
                 wordStates: wordStates
             };
@@ -34,6 +37,7 @@
                 const s = JSON.parse(localStorage.ultraSettings);
                 document.getElementById('sw').value = s.sw || "";
                 document.getElementById('sc').value = s.sc || "";
+                document.getElementById('mc').value = s.mc || "";
                 document.getElementById('ec').value = s.ec || "";
                 document.getElementById('ml').value = s.ml || 5;
                 document.getElementById('ks').value = s.ks || 0;
@@ -60,7 +64,7 @@
                             const labels = ["可", "不可", "必須"];
                             return `<div class="flex justify-between items-center p-2 rounded-lg ${colors[state]} transition-all text-xs font-bold">
                                 <span>${w}</span>
-                                <button onclick="cycleState('${w}')" class="px-3 py-1 rounded-md border border-black/10 dark:border-white/10 text-[9px] font-bold uppercase">${labels[state]}</button>
+                                <button onclick="cycleState('${w}')" class="px-3 py-1 rounded-md border border-black/10 dark:border-white/10 text-[9px] font-bold uppercase tracking-tighter">${labels[state]}</button>
                             </div>`;
                         }).join('')}
                     </div>
@@ -72,6 +76,7 @@
         function adjustVal(id, delta) { const el = document.getElementById(id); el.value = parseInt(el.value) + delta; saveSettings(); }
         
         function copyAll() {
+            if (currentRoutes.length === 0) return;
             const text = currentRoutes.map((rt, i) => `#${i+1}: ${rt.join(' → ')} (${rt.join('').length}文字)`).join('\n');
             navigator.clipboard.writeText(text).then(() => {
                 const btn = document.getElementById('copyBtn');
@@ -84,10 +89,9 @@
     <style>
         .dark { color-scheme: dark; }
         .glass { @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl; }
-        input, select { @apply bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 p-2 rounded-xl text-xs outline-none focus:ring-1 ring-blue-500; }
-        .step-btn { @apply bg-slate-200 dark:bg-slate-700 w-8 h-8 flex items-center justify-center rounded-lg font-black active:scale-90 transition-all; }
+        input, select { @apply bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 p-2 rounded-xl text-xs outline-none focus:ring-1 ring-blue-500 transition-all; }
+        .step-btn { @apply bg-slate-200 dark:bg-slate-700 w-7 h-7 flex items-center justify-center rounded font-black active:scale-90 transition-all; }
         details > summary { list-style: none; }
-        details > summary::-webkit-details-marker { display: none; }
     </style>
 </head>
 <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-3 font-sans" onchange="saveSettings()" oninput="saveSettings()">
@@ -98,10 +102,11 @@
         </header>
 
         <div class="glass rounded-[28px] p-5 space-y-4">
-            <div class="grid grid-cols-4 gap-2">
-                <input id="sw" placeholder="開始単語" class="col-span-2">
-                <input id="sc" placeholder="始" class="text-center">
-                <input id="ec" placeholder="終" class="text-center">
+            <input id="sw" placeholder="開始単語 (ひらがな可)" class="w-full">
+            <div class="grid grid-cols-3 gap-2">
+                <input id="sc" placeholder="開始字">
+                <input id="mc" placeholder="必須(あ,い)">
+                <input id="ec" placeholder="終了字">
             </div>
             
             <div class="grid grid-cols-2 gap-4 border-t border-slate-100 dark:border-slate-800 pt-3">
@@ -123,7 +128,7 @@
 
             <div class="flex justify-between items-center text-[10px] font-bold border-t border-slate-100 dark:border-slate-800 pt-3">
                 <div class="flex gap-3"><label><input type="checkbox" id="conj"> 共役排除</label><label><input type="checkbox" id="rt"> 牛耕</label></div>
-                <select id="sort_type" class="bg-transparent border-none w-20 text-blue-500 font-bold">
+                <select id="sort_type" class="bg-transparent border-none w-24 text-blue-500 font-bold">
                     <option value="kana">50音</option>
                     <option value="len_desc">多順</option>
                     <option value="len_asc">少順</option>
@@ -151,7 +156,6 @@
     </div>
 
     <script>
-        let currentRoutes = [];
         async function run(){
             const btn=document.getElementById('btn'); const resDiv=document.getElementById('res'); const statsDiv=document.getElementById('stats');
             btn.innerText="SEARCHING..."; btn.disabled=true; resDiv.innerHTML=""; statsDiv.classList.add('hidden'); currentRoutes = [];
@@ -161,7 +165,8 @@
                 method:'POST',
                 headers:{'Content-Type':'application/json'},
                 body:JSON.stringify({
-                    start_word:document.getElementById('sw').value, start_char:document.getElementById('sc').value, end_char:document.getElementById('ec').value,
+                    start_word:document.getElementById('sw').value, start_char:document.getElementById('sc').value,
+                    must_char:document.getElementById('mc').value, end_char:document.getElementById('ec').value,
                     max_len:document.getElementById('ml').value, target_total_len: document.getElementById('ttl').value ? parseInt(document.getElementById('ttl').value) : null,
                     pos_shift:document.getElementById('ps').value, kana_shift:document.getElementById('ks').value,
                     exclude_conjugates:document.getElementById('conj').checked, round_trip:document.getElementById('rt').checked,
