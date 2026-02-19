@@ -14,39 +14,75 @@
             document.documentElement.classList.add('dark');
         }
 
+        // 設定の保存
+        function saveSettings() {
+            const settings = {
+                sw: document.getElementById('sw').value,
+                sc: document.getElementById('sc').value,
+                mc: document.getElementById('mc').value,
+                ec: document.getElementById('ec').value,
+                ml: document.getElementById('ml').value,
+                ks: document.getElementById('ks').value,
+                ps: document.getElementById('ps').value,
+                ttl: document.getElementById('ttl').value,
+                conj: document.getElementById('conj').checked,
+                rt: document.getElementById('rt').checked,
+                sort: document.getElementById('sort_type').value,
+                cats: Array.from(document.querySelectorAll('input[name="cat"]:checked')).map(c => c.value)
+            };
+            localStorage.ultraSettings = JSON.stringify(settings);
+        }
+
+        // 設定の復元
+        window.onload = () => {
+            if (localStorage.ultraSettings) {
+                const s = JSON.parse(localStorage.ultraSettings);
+                document.getElementById('sw').value = s.sw || "";
+                document.getElementById('sc').value = s.sc || "";
+                document.getElementById('mc').value = s.mc || "";
+                document.getElementById('ec').value = s.ec || "";
+                document.getElementById('ml').value = s.ml || 5;
+                document.getElementById('ks').value = s.ks || 0;
+                document.getElementById('ps').value = s.ps || 0;
+                document.getElementById('ttl').value = s.ttl || "";
+                document.getElementById('conj').checked = s.conj;
+                document.getElementById('rt').checked = s.rt;
+                document.getElementById('sort_type').value = s.sort || "kana";
+                document.querySelectorAll('input[name="cat"]').forEach(c => {
+                    c.checked = s.cats.includes(c.value);
+                });
+            }
+        };
+
         function adjustVal(id, delta) {
             const el = document.getElementById(id);
             el.value = parseInt(el.value) + delta;
+            saveSettings();
         }
 
-        let currentRoutes = [];
-        function copyAll() {
-            if (currentRoutes.length === 0) return;
-            const text = currentRoutes.map((rt, i) => `#${i+1}: ${rt.join(' → ')} (${rt.join('').length}文字)`).join('\n');
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = document.getElementById('copyBtn');
-                btn.innerText = "COPIED!";
-                setTimeout(() => btn.innerText = "ALL COPY", 2000);
-            });
+        function toggleAllCats(state) {
+            document.querySelectorAll('input[name="cat"]').forEach(c => c.checked = state);
+            saveSettings();
         }
     </script>
     <style>
         .dark { color-scheme: dark; }
         .glass { @apply bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xl; }
-        input, select { @apply bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 p-3 rounded-xl w-full text-sm outline-none focus:ring-2 ring-blue-500 transition-all; }
-        .step-btn { @apply bg-slate-200 dark:bg-slate-700 px-3 py-2 rounded-lg font-black active:scale-90 transition-transform; }
+        input, select { @apply bg-slate-50 dark:bg-slate-800 border-slate-300 dark:border-slate-700 p-2 rounded-xl w-full text-sm outline-none; }
+        .step-btn { @apply bg-slate-200 dark:bg-slate-700 w-8 h-8 flex items-center justify-center rounded-lg font-black text-lg active:scale-90; }
     </style>
 </head>
-<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 min-h-screen">
-    <div class="max-w-md mx-auto p-4 space-y-4">
+<body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 p-4" onchange="saveSettings()" oninput="saveSettings()">
+    <div class="max-w-md mx-auto space-y-4">
         <header class="flex justify-between items-center px-1">
             <h1 class="text-2xl font-black italic text-blue-600">ULTRA ENGINE</h1>
             <button onclick="toggleDarkMode()" class="p-2 glass rounded-full">🌓</button>
         </header>
 
-        <div class="glass rounded-[32px] p-6 space-y-5">
-            <div class="space-y-3">
-                <input id="sw" placeholder="開始単語 (ひらがな可)">
+        <div class="glass rounded-[32px] p-5 space-y-4">
+            <!-- Words Section -->
+            <div class="space-y-2">
+                <input id="sw" placeholder="開始単語">
                 <div class="grid grid-cols-3 gap-2">
                     <input id="sc" placeholder="開始字">
                     <input id="mc" placeholder="必須(あ,い)">
@@ -54,60 +90,69 @@
                 </div>
             </div>
 
+            <!-- Numbers Section (Layout Fixed) -->
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">単語数</label>
-                    <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-slate-400 block uppercase">単語数</label>
+                    <div class="flex items-center gap-1">
                         <button onclick="adjustVal('ml',-1)" class="step-btn">-</button>
-                        <input type="number" id="ml" value="5" class="text-center">
+                        <input type="number" id="ml" value="5" class="text-center p-1">
                         <button onclick="adjustVal('ml',1)" class="step-btn">+</button>
                     </div>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">合計文字数</label>
-                    <input type="number" id="ttl" placeholder="計">
+                    <label class="text-[10px] font-bold text-slate-400 block uppercase">合計文字数</label>
+                    <input type="number" id="ttl" placeholder="計" class="p-2 h-[32px]">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">50音ずらし</label>
-                    <div class="flex items-center gap-2">
+                    <label class="text-[10px] font-bold text-slate-400 block uppercase">50音ずらし</label>
+                    <div class="flex items-center gap-1">
                         <button onclick="adjustVal('ks',-1)" class="step-btn">-</button>
-                        <input type="number" id="ks" value="0" class="text-center">
+                        <input type="number" id="ks" value="0" class="text-center p-1">
                         <button onclick="adjustVal('ks',1)" class="step-btn">+</button>
                     </div>
                 </div>
                 <div class="space-y-1">
-                    <label class="text-[10px] font-bold text-slate-400 ml-1 uppercase">物理ずらし</label>
-                    <input type="number" id="ps" value="0" class="text-center">
+                    <label class="text-[10px] font-bold text-slate-400 block uppercase">物理ずらし</label>
+                    <input type="number" id="ps" value="0" class="p-2 h-[32px]">
                 </div>
             </div>
 
-            <div class="flex gap-4 text-xs font-bold py-1 border-t border-slate-100 dark:border-slate-800 pt-4">
+            <!-- Checks -->
+            <div class="flex gap-4 text-xs font-bold py-1 border-t border-slate-100 dark:border-slate-800 pt-3">
                 <label class="flex items-center gap-2"><input type="checkbox" id="conj"> 共役排除</label>
                 <label class="flex items-center gap-2"><input type="checkbox" id="rt"> 重複許可</label>
             </div>
 
-            <div class="flex items-center justify-between gap-4">
-                <div class="flex gap-3 text-[11px] font-bold">
-                    <label><input type="checkbox" name="cat" value="country" checked> 国</label>
-                    <label><input type="checkbox" name="cat" value="capital"> 首都</label>
+            <!-- Dictionary & Sort -->
+            <div class="space-y-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-[10px] font-bold text-slate-400 uppercase">Dictionary</span>
+                    <div class="flex gap-2">
+                        <button onclick="toggleAllCats(true)" class="text-[9px] bg-blue-100 dark:bg-blue-900 px-2 py-1 rounded">全選択</button>
+                        <button onclick="toggleAllCats(false)" class="text-[9px] bg-slate-200 dark:bg-slate-700 px-2 py-1 rounded">全解除</button>
+                    </div>
                 </div>
-                <select id="sort_type" class="text-[10px] h-8 w-24">
-                    <option value="kana">50音順</option>
-                    <option value="length">文字数順</option>
-                </select>
+                <div class="flex items-center justify-between gap-4">
+                    <div class="flex gap-3 text-[11px] font-bold">
+                        <label class="flex items-center gap-1"><input type="checkbox" name="cat" value="country" checked> 国</label>
+                        <label class="flex items-center gap-1"><input type="checkbox" name="cat" value="capital"> 首都</label>
+                    </div>
+                    <select id="sort_type" class="text-[10px] h-8 w-24 p-1">
+                        <option value="kana">50音順</option>
+                        <option value="length">文字数順</option>
+                    </select>
+                </div>
             </div>
 
-            <div class="flex gap-2 pt-2">
-                <button onclick="run()" id="btn" class="flex-[2] bg-blue-600 text-white font-black py-4 rounded-2xl shadow-blue-500/20 shadow-lg active:scale-95 transition-all">EXPLORE</button>
-                <button onclick="copyAll()" id="copyBtn" class="flex-1 bg-slate-100 dark:bg-slate-800 font-bold py-4 rounded-2xl active:scale-95 transition-all text-[10px]">ALL COPY</button>
-            </div>
+            <button onclick="run()" id="btn" class="w-full bg-blue-600 text-white font-black py-4 rounded-2xl active:scale-95 transition-all shadow-lg shadow-blue-500/30">EXPLORE</button>
         </div>
 
-        <div id="stats" class="text-center text-[11px] font-bold text-slate-400 hidden"></div>
-        <div id="res" class="space-y-3 pb-20"></div>
+        <div id="stats" class="text-center text-[10px] font-bold text-slate-400 hidden"></div>
+        <div id="res" class="space-y-2 pb-20"></div>
     </div>
 
     <script>
@@ -115,9 +160,8 @@
             const btn=document.getElementById('btn');
             const resDiv=document.getElementById('res');
             const statsDiv=document.getElementById('stats');
-            btn.innerText="EXPLORING..."; btn.disabled=true;
+            btn.innerText="探索中..."; btn.disabled=true;
             resDiv.innerHTML=""; statsDiv.classList.add('hidden');
-            currentRoutes = [];
 
             const cats = Array.from(document.querySelectorAll('input[name="cat"]:checked')).map(c => c.value);
             const targetTotal = document.getElementById('ttl').value;
@@ -144,20 +188,15 @@
             btn.innerText="EXPLORE"; btn.disabled=false;
             
             if(d.count > 0){
-                currentRoutes = d.routes;
                 statsDiv.innerText = `${d.count} ROUTES FOUND`;
                 statsDiv.classList.remove('hidden');
                 resDiv.innerHTML = d.routes.map((rt, i)=>`
-                    <div class="glass p-4 rounded-2xl border-l-4 border-blue-500 animate-in fade-in slide-in-from-bottom-2">
-                        <div class="flex justify-between items-center mb-2 font-mono text-[9px] text-slate-400">
-                            <span>ROUTE #${i+1}</span>
-                            <span>${rt.join('').length} CHARS</span>
-                        </div>
-                        <div class="text-sm font-bold leading-relaxed">${rt.join(' → ')}</div>
+                    <div class="glass p-4 rounded-2xl border-l-4 border-blue-500 text-sm font-bold leading-relaxed">
+                        ${rt.join(' → ')}
                     </div>
                 `).join('');
             } else {
-                resDiv.innerHTML = '<p class="text-center text-slate-500 py-10 font-bold italic">NO ROUTES FOUND</p>';
+                resDiv.innerHTML = '<p class="text-center text-slate-500 py-10 font-bold italic text-sm">NO ROUTES FOUND</p>';
             }
         }
     </script>
