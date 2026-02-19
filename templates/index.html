@@ -6,14 +6,25 @@
     <title>極・しりとり探索</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-        // ダークモード切り替えロジック
         function toggleDarkMode() {
             document.documentElement.classList.toggle('dark');
             localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
         }
-        // 初期状態の読み込み
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark');
+        }
+
+        // 全コピー機能
+        let currentRoutes = [];
+        function copyAll() {
+            if (currentRoutes.length === 0) return;
+            const text = currentRoutes.map((rt, i) => `#${i+1}: ${rt.join(' → ')} (${rt.join('').length}文字)`).join('\n');
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const originalText = btn.innerText;
+                btn.innerText = "コピー完了！";
+                setTimeout(() => btn.innerText = originalText, 2000);
+            });
         }
     </script>
     <style>
@@ -45,44 +56,50 @@
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">単語数 (Max 50)</label>
+                    <label class="text-[10px] font-bold text-slate-400 mb-1 block uppercase">単語数</label>
                     <input type="number" id="ml" value="5">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">合計文字数 (任意)</label>
-                    <input type="number" id="ttl" placeholder="計">
+                    <label class="text-[10px] font-bold text-slate-400 mb-1 block uppercase">合計文字数</label>
+                    <input type="number" id="ttl" placeholder="指定なし">
                 </div>
             </div>
 
             <div class="grid grid-cols-2 gap-4">
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">物理位置ずらし</label>
+                    <label class="text-[10px] font-bold text-slate-400 mb-1 block uppercase">物理ずらし</label>
                     <input type="number" id="ps" value="0">
                 </div>
                 <div>
-                    <label class="text-[10px] font-bold text-slate-400 mb-1 block">環状ずらし</label>
+                    <label class="text-[10px] font-bold text-slate-400 mb-1 block uppercase">50音ずらし</label>
                     <input type="number" id="ks" value="0">
                 </div>
             </div>
 
             <div class="flex items-center justify-between text-xs font-medium py-1">
-                <label class="flex items-center gap-2"><input type="checkbox" id="conj" class="w-4 h-4"> 共役排除</label>
-                <label class="flex items-center gap-2"><input type="checkbox" id="rt" class="w-4 h-4"> 重複許可</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="conj" class="w-4 h-4 accent-blue-600"> 共役排除</label>
+                <label class="flex items-center gap-2"><input type="checkbox" id="rt" class="w-4 h-4 accent-blue-600"> 重複許可</label>
             </div>
 
             <div class="flex items-center justify-between text-xs font-medium py-1 border-t border-slate-200 dark:border-slate-800 pt-3">
-                <label class="flex items-center gap-2"><input type="checkbox" name="cat" value="country" checked> 国名</label>
-                <label class="flex items-center gap-2"><input type="checkbox" name="cat" value="capital"> 首都</label>
+                <div class="flex gap-3">
+                    <label class="flex items-center gap-1"><input type="checkbox" name="cat" value="country" checked> 国名</label>
+                    <label class="flex items-center gap-1"><input type="checkbox" name="cat" value="capital"> 首都</label>
+                </div>
                 <select id="sort_type" class="w-24 p-1 rounded-lg">
-                    <option value="kana">あいうえお順</option>
+                    <option value="kana">50音順</option>
                     <option value="length">文字数順</option>
                 </select>
             </div>
 
-            <button onclick="run()" id="btn" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg transition-transform active:scale-95 text-lg">探索実行</button>
+            <div class="flex gap-2">
+                <button onclick="run()" id="btn" class="flex-[2] bg-blue-600 hover:bg-blue-500 text-white font-black py-4 rounded-2xl shadow-lg transition-transform active:scale-95">探索実行</button>
+                <button onclick="copyAll()" id="copyBtn" class="flex-1 bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold py-4 rounded-2xl transition-all active:scale-95 text-xs">一括コピー</button>
+            </div>
         </div>
 
-        <!-- Result Area -->
+        <!-- Result Stats & Area -->
+        <div id="stats" class="text-center text-[11px] font-bold text-slate-400 uppercase tracking-widest hidden"></div>
         <div id="res" class="space-y-3 pb-24"></div>
     </div>
 
@@ -90,44 +107,58 @@
         async function run(){
             const btn=document.getElementById('btn');
             const resDiv=document.getElementById('res');
+            const statsDiv=document.getElementById('stats');
             btn.innerText="探索中..."; btn.disabled=true;
             resDiv.innerHTML="";
+            statsDiv.classList.add('hidden');
+            currentRoutes = [];
 
             const cats = Array.from(document.querySelectorAll('input[name="cat"]:checked')).map(c => c.value);
             const targetTotal = document.getElementById('ttl').value;
 
-            const r=await fetch('/search',{
-                method:'POST',
-                headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({
-                    start_word:document.getElementById('sw').value,
-                    start_char:document.getElementById('sc').value,
-                    must_char:document.getElementById('mc').value,
-                    end_char:document.getElementById('ec').value,
-                    max_len:document.getElementById('ml').value,
-                    target_total_len: targetTotal ? parseInt(targetTotal) : null,
-                    pos_shift:document.getElementById('ps').value,
-                    kana_shift:document.getElementById('ks').value,
-                    exclude_conjugates:document.getElementById('conj').checked,
-                    round_trip:document.getElementById('rt').checked,
-                    sort_type:document.getElementById('sort_type').value,
-                    categories: cats
-                })
-            });
-            const d=await r.json();
-            btn.innerText="探索実行"; btn.disabled=false;
-            
-            resDiv.innerHTML = d.count ? d.routes.map((rt, i)=>`
-                <div class="glass p-4 rounded-2xl border-l-4 border-blue-500 animate-in fade-in slide-in-from-bottom-2">
-                    <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-blue-500">ROUTE #${i+1}</span>
-                        <span class="text-[10px] text-slate-400 font-mono">${rt.join('').length}文字</span>
-                    </div>
-                    <div class="text-sm font-bold leading-relaxed break-words">
-                        ${rt.join(' <span class="text-blue-500 mx-1">→</span> ')}
-                    </div>
-                </div>
-            `).join('') : '<p class="text-center text-slate-500 py-10">見つかりませんでした</p>';
+            try {
+                const r = await fetch('/search',{
+                    method:'POST',
+                    headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({
+                        start_word:document.getElementById('sw').value,
+                        start_char:document.getElementById('sc').value,
+                        must_char:document.getElementById('mc').value,
+                        end_char:document.getElementById('ec').value,
+                        max_len:document.getElementById('ml').value,
+                        target_total_len: targetTotal ? parseInt(targetTotal) : null,
+                        pos_shift:document.getElementById('ps').value,
+                        kana_shift:document.getElementById('ks').value,
+                        exclude_conjugates:document.getElementById('conj').checked,
+                        round_trip:document.getElementById('rt').checked,
+                        sort_type:document.getElementById('sort_type').value,
+                        categories: cats
+                    })
+                });
+                const d = await r.json();
+                btn.innerText="探索実行"; btn.disabled=false;
+                
+                if(d.count > 0){
+                    currentRoutes = d.routes;
+                    statsDiv.innerText = `${d.count} 通りのルートが見つかりました`;
+                    statsDiv.classList.remove('hidden');
+                    resDiv.innerHTML = d.routes.map((rt, i)=>`
+                        <div class="glass p-4 rounded-2xl border-l-4 border-blue-500 animate-in fade-in slide-in-from-bottom-2">
+                            <div class="flex justify-between items-center mb-2">
+                                <span class="text-[10px] font-bold text-blue-500 uppercase tracking-tighter">Route #${i+1}</span>
+                                <span class="text-[10px] text-slate-400 font-mono italic">${rt.join('').length}文字</span>
+                            </div>
+                            <div class="text-sm font-bold leading-relaxed">
+                                ${rt.join(' <span class="text-blue-500/50 mx-1">→</span> ')}
+                            </div>
+                        </div>
+                    `).join('');
+                } else {
+                    resDiv.innerHTML = '<p class="text-center text-slate-500 py-10 font-bold italic opacity-50 uppercase tracking-widest">No Routes Found</p>';
+                }
+            } catch (e) {
+                btn.innerText="エラー発生"; btn.disabled=false;
+            }
         }
     </script>
 </body>
