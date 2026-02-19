@@ -91,8 +91,14 @@ def search():
     for w in starts:
         solve([w], len(w), set())
 
+    # ソート処理
     sort_type = d.get('sort_type', 'kana')
-    results.sort(key=lambda x: (len("".join(x)), x) if sort_type == 'length' else x)
+    if sort_type == 'len_asc':
+        results.sort(key=lambda x: (len("".join(x)), x))
+    elif sort_type == 'len_desc':
+        results.sort(key=lambda x: (len("".join(x)), x), reverse=True)
+    else:
+        results.sort()
     return jsonify({"routes": results, "count": len(results)})
 
 if __name__ == '__main__':
