@@ -25,10 +25,7 @@ DICTIONARY_MASTER = {
 def get_clean_char(w, pos="head", offset=0):
     text = w.replace("ー", "")
     if not text: return ""
-    if pos == "head":
-        char = text[offset] if len(text) > offset else text
-    else:
-        char = text[-(1+offset)] if len(text) > offset else text[-1]
+    char = text[offset] if pos == "head" else text[-(1+offset)]
     return SMALL_TO_LARGE.get(char, char)
 
 def shift_kana(char, n):
@@ -44,10 +41,11 @@ def get_dictionary(): return jsonify(DICTIONARY_MASTER)
 @app.route('/search', methods=['POST'])
 def search():
     d = request.json
-    max_len = min(int(d.get('max_len', 5)), 50)
+    max_len = int(d.get('max_len', 5))
     pos_shift = int(d.get('pos_shift', 0))
     use_shift = d.get('use_shift', False)
     ks_val = int(d.get('ks_abs', 1))
+    shift_mode = d.get('shift_mode', 'abs')
     use_multi_limit = d.get('use_multi_limit', False)
     raw_mc = to_katakana(d.get('must_char', ""))
     mc_counts = {}
@@ -57,7 +55,7 @@ def search():
         for item in re.split('[、,]', raw_mc):
             if ':' in item:
                 char, count = item.split(':')
-                mc_counts[to_katakana(char)] = int(count)
+                mc_counts[to_katakana(char.strip())] = int(count)
     else:
         must_chars = [c for c in re.split('[、,]', raw_mc) if c]
 
@@ -78,7 +76,6 @@ def search():
         for w in DICTIONARY_MASTER.get(cat, []):
             if w not in blocked_words: temp_pool.append(w)
     
-    # 共役排除ロジック
     if exclude_conjugates:
         ht_list = [(get_clean_char(w, "head", 0), get_clean_char(w, "tail", 0)) for w in temp_pool]
         counts = Counter(ht_list)
@@ -89,11 +86,10 @@ def search():
     results = []
     start_time = time.time()
     
-    def solve(path, current_total_len, used_pairs):
+    def solve(path, current_total_len):
         if time.time() - start_time > 15 or len(results) >= 1500: return
         full_current = "".join(path)
         
-        # 枝刈り：回数指定モード時
         if use_multi_limit:
             if any(full_current.count(c) > n for c, n in mc_counts.items()): return
 
@@ -114,27 +110,23 @@ def search():
         
         last_word = path[-1]
         is_even = len(path) % 2 == 0
-        if round_trip:
-            src_char = get_clean_char(last_word, "head" if is_even else "tail", pos_shift)
-            target_pos = "head" if is_even else "tail"
-        else:
-            src_char = get_clean_char(last_word, "tail", pos_shift)
-            target_pos = "head"
+        src_char = get_clean_char(last_word, "head" if (round_trip and is_even) else "tail", pos_shift)
+        t_pos = "head" if not (round_trip and is_even) else "tail"
 
         if use_shift:
-            target_chars = [shift_kana(src_char, abs(ks_val)), shift_kana(src_char, -abs(ks_val))]
+            targets = [shift_kana(src_char, abs(ks_val)), shift_kana(src_char, -abs(ks_val))] if shift_mode == 'abs' else [shift_kana(src_char, ks_val)]
         else:
-            target_chars = [src_char]
+            targets = [src_char]
 
         for next_w in word_pool:
             if next_w in path: continue
-            if get_clean_char(next_w, target_pos, pos_shift) in target_chars:
-                solve(path + [next_w], current_total_len + len(next_w), None)
+            if get_clean_char(next_w, t_pos, pos_shift) in targets:
+                solve(path + [next_w], current_total_len + len(next_w))
 
     starts = [start_word] if (start_word in word_pool) else word_pool
     for w in sorted(starts):
         if not start_word and start_char and get_clean_char(w, "head", pos_shift) != start_char: continue
-        solve([w], len(w), set())
+        solve([w], len(w))
 
     results.sort(key=lambda x: (len("".join(x)), x))
     return jsonify({"routes": results, "count": len(results)})
